@@ -138,15 +138,21 @@ export default function PublicarPage() {
       if (esVehiculo) datosAnuncio.combustible = combustible
     }
 
-    const { data: perfilExistente } = await supabase.from('perfiles').select('id').eq('id', user.id).single()
-    if (!perfilExistente) {
-      const { error: errorPerfil } = await supabase.from('perfiles').insert([{ id: user.id, nombre_completo: user.user_metadata?.nombre_completo || 'Usuario NÍTIDO' }])
-      if (errorPerfil) {
-        setMensaje('Error al preparar el perfil: ' + errorPerfil.message)
-        setLoading(false)
-        return
-      }
+    // --- SOLUCIÓN ROBUSTA: UPSERT PARA PERFILES ---
+    // Aseguramos que el perfil exista sin riesgo de duplicados ("upsert")
+    const { error: errorPerfil } = await supabase
+      .from('perfiles')
+      .upsert({ 
+        id: user.id, 
+        nombre_completo: user.user_metadata?.nombre_completo || 'Usuario NÍTIDO' 
+      }, { onConflict: 'id' })
+    
+    if (errorPerfil) {
+      setMensaje('Error al preparar el perfil: ' + errorPerfil.message)
+      setLoading(false)
+      return
     }
+    // ----------------------------------------------
 
     const { data: anuncioGuardado, error: errorAnuncio } = await supabase.from('anuncios').insert([datosAnuncio]).select().single()
     if (errorAnuncio) {
