@@ -1,5 +1,6 @@
 'use client'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Session } from '@supabase/supabase-js'
@@ -29,9 +30,9 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="flex items-center justify-between px-8 py-5 border-b border-gray-100 bg-white sticky top-0 z-50 shadow-sm/50 backdrop-blur-md">
-      <Link href="/" className="text-3xl font-black tracking-tighter text-blue-600 hover:opacity-80 transition-opacity">
-        NÍTIDO.
+    <nav className="flex items-center justify-between px-4 md:px-8 py-3 md:py-4 border-b border-gray-100 bg-white/95 sticky top-0 z-50 shadow-sm backdrop-blur-md">
+      <Link href="/" className="hover:opacity-80 transition-opacity flex items-center">
+        <Image src="/logo.png" alt="NÍTIDO" width={120} height={40} priority className="h-8 md:h-10 w-auto object-contain" />
       </Link>
       
       <div className="flex gap-4 md:gap-6 items-center">

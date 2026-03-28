@@ -24,11 +24,12 @@ export default function HomeSearchBar() {
         type="text" 
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
-        className="block w-full pl-14 pr-32 py-5 text-lg border-2 border-gray-100 rounded-2xl focus:ring-0 focus:border-blue-600 transition-all outline-none bg-gray-50 focus:bg-white" 
-        placeholder="Ej. Apartamento en la Zona Oriental, Programador..."
+        className="block w-full pl-12 md:pl-14 pr-16 md:pr-32 py-4 md:py-5 text-base md:text-lg border-2 border-gray-100 rounded-2xl focus:ring-0 focus:border-blue-600 transition-all outline-none bg-gray-50 focus:bg-white" 
+        placeholder="Ej. Apartamento, Programador..."
       />
-      <button type="submit" className="absolute right-2 top-2 bottom-2 bg-blue-600 text-white px-8 rounded-xl font-bold hover:bg-blue-700 transition-colors">
-        Buscar
+      <button type="submit" className="absolute right-2 top-2 bottom-2 bg-blue-600 text-white px-4 md:px-8 rounded-xl font-bold hover:bg-blue-700 transition-colors flex items-center justify-center">
+        <span className="hidden sm:inline">Buscar</span>
+        <svg className="h-5 w-5 sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
       </button>
     </form>
   )
