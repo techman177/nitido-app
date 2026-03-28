@@ -24,9 +24,9 @@ interface Anuncio {
 function PremiumBadge() {
   return (
     <div className="absolute top-4 left-4 z-20">
-      <div className="bg-gradient-to-r from-yellow-400 to-amber-500 text-white px-3 py-1.5 rounded-full text-xs font-black tracking-widest uppercase shadow-lg shadow-yellow-500/30 flex items-center gap-1.5 animate-pulse">
+      <div className="bg-gradient-to-r from-[#B49248] via-[#E5CC89] to-[#B49248] text-black px-3 py-1.5 rounded-full text-[10px] font-black tracking-[0.2em] uppercase shadow-[0_0_15px_rgba(180,146,72,0.4)] flex items-center gap-1.5 animate-pulse">
         <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2l1.5 3.5H15l-3 2.5 1 4L10 9.5 7 12l1-4-3-2.5h3.5L10 2z"/></svg>
-        DESTACADO
+        PREMIUM
       </div>
     </div>
   )
@@ -35,7 +35,7 @@ function PremiumBadge() {
 function CategoryBadge({ nombre, ubicacion, pink }: { nombre: string; ubicacion: string; pink: boolean }) {
   return (
     <div className="absolute top-4 right-4 z-20">
-      <div className={`backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold shadow-sm ${pink ? 'bg-pink-500/90 text-white' : 'bg-white/90 text-gray-700'}`}>
+      <div className={`backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm border ${pink ? 'bg-pink-600/90 text-white border-pink-400/30' : 'bg-black/60 text-[#E5CC89] border-[#B49248]/30'}`}>
         {nombre} • {ubicacion}
       </div>
     </div>
@@ -60,9 +60,9 @@ export default function AdCard({ ad }: { ad: Anuncio }) {
   if (isConectar) {
     // ─── TINDER-STYLE FULL-PHOTO CARD ───
     return (
-      <Link
+    <Link
         href={`/anuncio/${ad.id}`}
-        className={`group relative rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl transition-all flex flex-col cursor-pointer aspect-[3/4] ${ad.es_premium ? 'ring-4 ring-yellow-400/50' : ''}`}
+        className={`group relative rounded-3xl overflow-hidden shadow-2xl transition-all flex flex-col cursor-pointer aspect-[3/4] border ${ad.es_premium ? 'border-[#B49248] ring-4 ring-[#B49248]/20' : 'border-white/5 opacity-90 hover:opacity-100'}`}
       >
         {ad.es_premium && <PremiumBadge />}
         <CategoryBadge nombre={ad.categorias?.nombre} ubicacion={ad.ubicacion} pink />
@@ -108,7 +108,7 @@ export default function AdCard({ ad }: { ad: Anuncio }) {
   return (
     <Link
       href={`/anuncio/${ad.id}`}
-      className={`group bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all flex flex-col cursor-pointer ${ad.es_premium ? 'border-2 border-yellow-400 ring-4 ring-yellow-400/20' : 'border border-gray-100'}`}
+      className={`group bg-[#0a0a0a] rounded-3xl overflow-hidden shadow-2xl transition-all flex flex-col cursor-pointer border ${ad.es_premium ? 'border-[#B49248] ring-4 ring-[#B49248]/20 bg-gradient-to-br from-[#1a160d] to-[#0a0a0a]' : 'border-white/5 hover:border-[#B49248]/30'}`}
     >
       <div className="relative h-64 overflow-hidden bg-gray-100">
         {ad.es_premium && (
@@ -129,14 +129,20 @@ export default function AdCard({ ad }: { ad: Anuncio }) {
         )}
       </div>
 
-      <div className={`p-6 flex flex-col flex-1 ${ad.es_premium ? 'bg-gradient-to-br from-yellow-50/50 to-white' : ''}`}>
-        <div className="flex justify-between items-start mb-2">
-          <h3 className="text-lg font-bold leading-tight line-clamp-2 text-gray-900 group-hover:text-blue-600 transition-colors">{ad.titulo}</h3>
-          <span className="text-xl font-black text-blue-600 whitespace-nowrap ml-2">
+      <div className="p-6 flex flex-col flex-1">
+        <div className="flex flex-col gap-2 mb-4">
+          <span className="text-[10px] font-black text-[#B49248] uppercase tracking-[0.2em]">{ad.categorias?.nombre}</span>
+          <h3 className="text-xl font-black leading-tight line-clamp-2 text-white group-hover:text-[#E5CC89] transition-colors">{ad.titulo}</h3>
+        </div>
+        
+        <div className="flex items-center justify-between mt-auto pt-4 border-t border-white/5">
+          <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#B49248] via-[#E5CC89] to-[#B49248]">
             DOP {ad.precio.toLocaleString()}
           </span>
+          <div className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-white/40 group-hover:border-[#B49248] group-hover:text-[#E5CC89] transition-all">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+          </div>
         </div>
-        <p className="text-gray-500 text-sm line-clamp-2 mb-4 flex-1">{ad.descripcion}</p>
       </div>
     </Link>
   )
