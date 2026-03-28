@@ -38,18 +38,19 @@ export default function PerfilPage() {
 
   useEffect(() => {
     async function loadData() {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
         router.push('/login')
         return
       }
-      setSession(session)
+      // Mock session for compatibility with legacy UI if needed
+      setSession({ user } as Session)
 
       // Fetch Profile
       const { data: profileData } = await supabase
         .from('perfiles')
         .select('*')
-        .eq('id', session.user.id)
+        .eq('id', user.id)
         .single()
       
       if (profileData) setProfile(profileData)
@@ -62,7 +63,7 @@ export default function PerfilPage() {
           fotos_anuncio (url_imagen),
           categorias (nombre)
         `)
-        .eq('usuario_id', session.user.id)
+        .eq('usuario_id', user.id)
         .order('fecha_publicacion', { ascending: false })
 
       if (adsData) {
