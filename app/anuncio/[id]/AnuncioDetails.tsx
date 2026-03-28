@@ -65,7 +65,7 @@ export default function AnuncioDetails({ ad, currentUser }: AnuncioDetailsProps)
   const hasImages = images.length > 0
   const sellerPhone = ad.perfiles?.telefono?.replace(/\D/g, '') || "18290000000"
   const esConectar = ad.categorias?.nombre?.toLowerCase() === 'conectar'
-  const whatsappUrl = `https://wa.me/${sellerPhone}?text=Hola,%20me%20interesa%20tu%20${esConectar ? 'perfil' : 'anuncio'}%20de%20NÍTIDO:%20${encodeURIComponent(ad.titulo)}`
+  const whatsappUrl = `https://wa.me/${sellerPhone}?text=Hola,%20vi%20tu%20${esConectar ? 'perfil' : 'anuncio'}%20"${encodeURIComponent(ad.titulo)}"%20en%20NÍTIDO%20y%20me%20interesa%20saber%20más%20detalles.%20¿Sigue%20disponible?`
   const isOwner = currentUser?.id === ad.usuario_id
 
   return (
