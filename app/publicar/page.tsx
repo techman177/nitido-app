@@ -140,6 +140,28 @@ export default function PublicarPage() {
       if (esVehiculo) datosAnuncio.combustible = combustible
     }
 
+    // --- SOLUCIÓN A PRUEBA DE BALAS PARA FOREIGN KEY ERROR ---
+    // Verificar si el perfil existe en la tabla 'perfiles' antes de insertar el anuncio
+    const { data: perfilExistente } = await supabase
+      .from('perfiles')
+      .select('id')
+      .eq('id', user.id)
+      .single()
+
+    if (!perfilExistente) {
+      // Si el perfil no existe (como sucede con cuentas antiguas), lo creamos al vuelo
+      const { error: errorPerfil } = await supabase
+        .from('perfiles')
+        .insert([{ id: user.id, nombre_completo: user.user_metadata?.nombre_completo || 'Usuario NÍTIDO' }])
+      
+      if (errorPerfil) {
+        setMensaje('Error al preparar el perfil: ' + errorPerfil.message)
+        setLoading(false)
+        return
+      }
+    }
+    // ---------------------------------------------------------
+
     // 1. Crear el anuncio en la base de datos (con .select().single() para obtener el ID)
     const { data: anuncioGuardado, error: errorAnuncio } = await supabase
       .from('anuncios')
