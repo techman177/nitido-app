@@ -1,9 +1,10 @@
 'use client'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Session } from '@supabase/supabase-js'
+import Logo from './Logo'
 
 export default function Navbar() {
   const [session, setSession] = useState<Session | null>(null)
@@ -32,7 +33,7 @@ export default function Navbar() {
   return (
     <nav className="flex items-center justify-between px-4 md:px-8 py-3 md:py-4 border-b border-white/5 bg-black/95 sticky top-0 z-50 shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-md">
       <Link href="/" className="hover:opacity-80 transition-opacity flex items-center">
-        <Image src="/logo.png" alt="NÍTIDO" width={120} height={40} priority className="h-8 md:h-10 w-auto object-contain brightness-0 invert" />
+        <Logo className="h-8 md:h-12 w-auto" />
       </Link>
       
       <div className="flex gap-4 md:gap-6 items-center">

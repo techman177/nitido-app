@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import Logo from '@/components/Logo'
 
 interface Category {
   id: number
@@ -229,8 +230,10 @@ export default function PublicarPage() {
     <div className="min-h-screen bg-gray-50 py-12 px-4 font-sans text-gray-900">
       <div className="max-w-3xl mx-auto">
         <div className="flex justify-between items-center mb-8">
-          <Link href="/" className="text-2xl font-black text-blue-600 tracking-tighter">NÍTIDO.</Link>
-          <Link href="/" className="text-sm font-semibold text-gray-500 hover:text-blue-600">Volver al inicio</Link>
+          <Link href="/" className="hover:opacity-80 transition-opacity">
+            <Logo className="h-8 md:h-12 w-auto" />
+          </Link>
+          <Link href="/" className="text-sm font-semibold text-white/40 hover:text-white transition-colors">Volver al inicio</Link>
         </div>
 
         <div className="bg-white p-8 md:p-10 rounded-3xl shadow-xl border border-gray-100">

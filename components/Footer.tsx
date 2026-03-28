@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import Image from 'next/image'
+import Logo from './Logo'
 
 export default function Footer() {
   return (
@@ -10,7 +10,7 @@ export default function Footer() {
           {/* Brand & Mission */}
           <div className="flex flex-col items-center md:items-start text-center md:text-left space-y-6">
             <Link href="/" className="inline-block hover:opacity-80 transition-opacity">
-              <Image src="/logo-white.png" alt="NÍTIDO" width={130} height={40} className="h-9 md:h-11 w-auto object-contain" />
+              <Logo className="h-9 md:h-12 w-auto" />
             </Link>
             <p className="text-sm leading-relaxed max-w-xs text-gray-500">
               La plataforma premium de República Dominicana para comprar, vender, trabajar y conectar con lo que realmente importa.
