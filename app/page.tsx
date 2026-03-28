@@ -5,6 +5,7 @@ import { createClient } from "@/utils/supabase/server";
 
 // Deshabilitar cacheo agresivo para que la vitrina siempre traiga lo último
 export const revalidate = 0;
+export const dynamic = 'force-dynamic';
 
 interface FotoAnuncio {
   url_imagen: string

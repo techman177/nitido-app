@@ -45,6 +45,7 @@ export default function PublicarPage() {
   const [loading, setLoading] = useState(false)
   const [mensaje, setMensaje] = useState('')
   const [exito, setExito] = useState(false)
+  const [idAnuncioGuardado, setIdAnuncioGuardado] = useState<number | null>(null)
   const [loadingSession, setLoadingSession] = useState(true)
   const [mayorDeEdad, setMayorDeEdad] = useState<boolean | null>(null)
   const router = useRouter()
@@ -55,11 +56,9 @@ export default function PublicarPage() {
       if (!session) {
         router.push('/login')
       } else {
-        // Redundancy Check: Mayoría de Edad
-        // Si no hay fecha_nacimiento, PERMITE el acceso por defecto (cuentas antiguas)
         const { data: perfil } = await supabase.from('perfiles').select('fecha_nacimiento').eq('id', session.user.id).single()
         
-        let isAdult = true // Por defecto: permitir acceso
+        let isAdult = true
         if (perfil?.fecha_nacimiento) {
           const birthDate = new Date(perfil.fecha_nacimiento)
           const today = new Date()
@@ -98,7 +97,6 @@ export default function PublicarPage() {
   const esVehiculo = categoriaSeleccionada === 'vehículos' || categoriaSeleccionada === 'vehiculos';
   const esConectar = categoriaSeleccionada === 'conectar';
 
-  // Manejar selección de fotos
   const handleFotosChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       setFotos(Array.from(e.target.files))
@@ -140,72 +138,39 @@ export default function PublicarPage() {
       if (esVehiculo) datosAnuncio.combustible = combustible
     }
 
-    // --- SOLUCIÓN A PRUEBA DE BALAS PARA FOREIGN KEY ERROR ---
-    // Verificar si el perfil existe en la tabla 'perfiles' antes de insertar el anuncio
-    const { data: perfilExistente } = await supabase
-      .from('perfiles')
-      .select('id')
-      .eq('id', user.id)
-      .single()
-
+    const { data: perfilExistente } = await supabase.from('perfiles').select('id').eq('id', user.id).single()
     if (!perfilExistente) {
-      // Si el perfil no existe (como sucede con cuentas antiguas), lo creamos al vuelo
-      const { error: errorPerfil } = await supabase
-        .from('perfiles')
-        .insert([{ id: user.id, nombre_completo: user.user_metadata?.nombre_completo || 'Usuario NÍTIDO' }])
-      
+      const { error: errorPerfil } = await supabase.from('perfiles').insert([{ id: user.id, nombre_completo: user.user_metadata?.nombre_completo || 'Usuario NÍTIDO' }])
       if (errorPerfil) {
         setMensaje('Error al preparar el perfil: ' + errorPerfil.message)
         setLoading(false)
         return
       }
     }
-    // ---------------------------------------------------------
 
-    // 1. Crear el anuncio en la base de datos (con .select().single() para obtener el ID)
-    const { data: anuncioGuardado, error: errorAnuncio } = await supabase
-      .from('anuncios')
-      .insert([datosAnuncio])
-      .select()
-      .single()
-
+    const { data: anuncioGuardado, error: errorAnuncio } = await supabase.from('anuncios').insert([datosAnuncio]).select().single()
     if (errorAnuncio) {
       setMensaje('Error al crear el anuncio: ' + errorAnuncio.message)
       setLoading(false)
       return
     }
 
-    // 2. Subir las fotos al "Disco Duro" de Supabase
     setMensaje('Subiendo fotos, por favor espera...')
-    
     for (const foto of fotos) {
       const fileExt = foto.name.split('.').pop()
       const fileName = `${Date.now()}-${Math.random()}.${fileExt}`
       const rutaGuardado = `${user.id}/${fileName}`
-
-      const { error: errorUpload } = await supabase.storage
-        .from('anuncios')
-        .upload(rutaGuardado, foto)
-
+      const { error: errorUpload } = await supabase.storage.from('anuncios').upload(rutaGuardado, foto)
       if (!errorUpload) {
-        // 3. Conseguir el link público de la foto y guardarlo en la tabla fotos_anuncio
         const { data: { publicUrl } } = supabase.storage.from('anuncios').getPublicUrl(rutaGuardado)
-        await supabase.from('fotos_anuncio').insert([{
-          anuncio_id: anuncioGuardado.id,
-          url_imagen: publicUrl
-        }])
+        await supabase.from('fotos_anuncio').insert([{ anuncio_id: anuncioGuardado.id, url_imagen: publicUrl }])
       }
     }
 
-    setMensaje('¡Anuncio publicado NÍTIDO con todo y fotos! 🎉 Redirigiendo a tu perfil...')
+    setMensaje('¡Anuncio publicado NÍTIDO con todo y fotos! 🎉')
+    setIdAnuncioGuardado(anuncioGuardado.id)
     setExito(true)
-    
-    // Redirigir después de 2 segundos para que el usuario vea el éxito
-    setTimeout(() => {
-      router.push('/perfil')
-    }, 2000)
-    
-    // Limpiar todo
+    router.refresh()
     setTitulo(''); setDescripcion(''); setPrecio(''); setUbicacion(''); setCategoriaId('');
     setMarca(''); setModelo(''); setAnio(''); setTransmision(''); setCombustible(''); setFotos([]);
     setLoading(false)
@@ -230,125 +195,147 @@ export default function PublicarPage() {
               <p className="text-red-600 font-medium mb-2">Debes ser mayor de 18 años para publicar anuncios en NÍTIDO.</p>
               <p className="text-sm text-red-500/80">Si consideras que esto es un error o tu cuenta es antigua, por favor actualiza tu fecha de nacimiento en Editar Perfil.</p>
             </div>
+          ) : exito && idAnuncioGuardado ? (
+            <div className="mt-8 bg-gradient-to-br from-green-50 to-white p-8 rounded-[2.5rem] border-2 border-green-200 shadow-2xl animate-in zoom-in duration-500 text-center">
+              <div className="w-20 h-20 bg-green-500 text-white rounded-full flex items-center justify-center text-4xl mx-auto mb-6 shadow-lg shadow-green-200">
+                ✅
+              </div>
+              <h2 className="text-3xl font-black text-gray-900 mb-2 tracking-tight">¡Publicación Exitosa!</h2>
+              <p className="text-gray-500 font-medium mb-8">Tu anuncio ya está disponible para todo el mundo en NÍTIDO.</p>
+              
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link 
+                  href={`/anuncio/${idAnuncioGuardado}`}
+                  className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 flex items-center justify-center gap-2"
+                >
+                  Ver mi Anuncio →
+                </Link>
+                <Link 
+                  href="/perfil"
+                  className="bg-gray-100 text-gray-700 px-8 py-4 rounded-2xl font-bold text-lg hover:bg-gray-200 transition-all flex items-center justify-center"
+                >
+                  Ir a mi Perfil
+                </Link>
+              </div>
+              <button 
+                onClick={() => { setExito(false); setIdAnuncioGuardado(null); setMensaje(''); }}
+                className="mt-8 text-sm font-bold text-gray-400 hover:text-blue-600 transition-colors"
+              >
+                Publicar otro anuncio
+              </button>
+            </div>
           ) : (
             <form onSubmit={handlePublicar} className="space-y-6">
-              
-              {/* Título y Categoría */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Título del anuncio</label>
-                <input type="text" placeholder="Ej. Toyota Corolla" className="w-full p-4 bg-gray-50 border-2 border-transparent rounded-xl focus:border-blue-600 outline-none transition-all" value={titulo} onChange={(e) => setTitulo(e.target.value)} required />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Categoría</label>
-                <select className="w-full p-4 bg-gray-50 border-2 border-transparent rounded-xl focus:border-blue-600 outline-none transition-all cursor-pointer" value={categoriaId} onChange={(e) => setCategoriaId(e.target.value)} required>
-                  <option value="" disabled>Selecciona una...</option>
-                  {categorias.map((cat) => (
-                    <option key={cat.id} value={cat.id}>{cat.nombre}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Vehículos Dinámico */}
-            {esVehiculo && (
-              <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100 space-y-4">
-                <h3 className="font-bold text-blue-800 mb-4">Detalles del Vehículo</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Marca</label>
-                    <input type="text" placeholder="Ej. Toyota" className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none focus:border-blue-500" value={marca} onChange={(e) => setMarca(e.target.value)} required={esVehiculo} />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Modelo</label>
-                    <input type="text" placeholder="Ej. Corolla" className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none focus:border-blue-500" value={modelo} onChange={(e) => setModelo(e.target.value)} required={esVehiculo} />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Año</label>
-                    <input type="number" placeholder="Ej. 2018" className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none focus:border-blue-500" value={anio} onChange={(e) => setAnio(e.target.value)} required={esVehiculo} />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Conectar Dinámico */}
-            {esConectar && (
-              <div className="bg-pink-50 p-6 rounded-2xl border border-pink-100 space-y-4 shadow-[inset_0_2px_10px_rgba(252,165,165,0.1)]">
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="text-2xl">💖</span>
-                  <h3 className="font-bold text-pink-700 text-lg tracking-tight">Crea tu Perfil NÍTIDO</h3>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-pink-600 uppercase tracking-widest mb-1.5 ml-1">Mi Edad</label>
-                    <input type="number" min="18" max="99" placeholder="Ej. 25" className="w-full p-3 bg-white border-2 border-pink-100 rounded-xl outline-none focus:border-pink-400 focus:ring-4 focus:ring-pink-400/20 text-center font-bold text-gray-700" value={anio} onChange={(e) => setAnio(e.target.value)} required={esConectar} />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-pink-600 uppercase tracking-widest mb-1.5 ml-1">Soy</label>
-                    <select className="w-full p-3 bg-white border-2 border-pink-100 rounded-xl outline-none focus:border-pink-400 focus:ring-4 focus:ring-pink-400/20 text-gray-700 font-medium" value={marca} onChange={(e) => setMarca(e.target.value)} required={esConectar}>
-                      <option value="" disabled>Seleccionar...</option>
-                      <option value="Hombre">Hombre</option>
-                      <option value="Mujer">Mujer</option>
-                      <option value="Ambos">Ambos</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-pink-600 uppercase tracking-widest mb-1.5 ml-1">Qué busco</label>
-                    <select className="w-full p-3 bg-white border-2 border-pink-100 rounded-xl outline-none focus:border-pink-400 focus:ring-4 focus:ring-pink-400/20 text-gray-700 font-medium" value={modelo} onChange={(e) => setModelo(e.target.value)} required={esConectar}>
-                      <option value="" disabled>Seleccionar...</option>
-                      <option value="Hombre">Hombre</option>
-                      <option value="Mujer">Mujer</option>
-                      <option value="Ambos">Ambos</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-pink-600 uppercase tracking-widest mb-1.5 ml-1">Tipo de Relación</label>
-                    <select className="w-full p-3 bg-white border-2 border-pink-100 rounded-xl outline-none focus:border-pink-400 focus:ring-4 focus:ring-pink-400/20 text-gray-700 font-medium" value={transmision} onChange={(e) => setTransmision(e.target.value)} required={esConectar}>
-                      <option value="" disabled>Seleccionar...</option>
-                      <option value="Amistad">Amistad 👋</option>
-                      <option value="Citas casuales">Citas casuales 🍻</option>
-                      <option value="Algo serio">Algo serio 💍</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* FOTOS (NUEVO) */}
-            <div className="p-6 border-2 border-dashed border-gray-300 rounded-2xl bg-gray-50 text-center hover:border-blue-500 transition-all">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Sube las fotos (Obligatorio)</label>
-              <input type="file" multiple accept="image/*" onChange={handleFotosChange} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer" required />
-              {fotos.length > 0 && <p className="mt-3 text-sm text-green-600 font-bold">{fotos.length} foto(s) seleccionada(s)</p>}
-            </div>
-
-            {/* Precio y Ubicación */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {!esConectar && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Precio (DOP)</label>
-                  <input type="number" placeholder="Ej. 850000" className="w-full p-4 bg-gray-50 border-2 border-transparent rounded-xl focus:border-blue-600 outline-none transition-all" value={precio} onChange={(e) => setPrecio(e.target.value)} required={!esConectar} />
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Título del anuncio</label>
+                  <input type="text" placeholder="Ej. Toyota Corolla" className="w-full p-4 bg-gray-50 border-2 border-transparent rounded-xl focus:border-blue-600 outline-none transition-all" value={titulo} onChange={(e) => setTitulo(e.target.value)} required />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Categoría</label>
+                  <select className="w-full p-4 bg-gray-50 border-2 border-transparent rounded-xl focus:border-blue-600 outline-none transition-all cursor-pointer" value={categoriaId} onChange={(e) => setCategoriaId(e.target.value)} required>
+                    <option value="" disabled>Selecciona una...</option>
+                    {categorias.map((cat) => (
+                      <option key={cat.id} value={cat.id}>{cat.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {esVehiculo && (
+                <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100 space-y-4">
+                  <h3 className="font-bold text-blue-800 mb-4">Detalles del Vehículo</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 mb-1">Marca</label>
+                      <input type="text" placeholder="Ej. Toyota" className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none focus:border-blue-500" value={marca} onChange={(e) => setMarca(e.target.value)} required={esVehiculo} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 mb-1">Modelo</label>
+                      <input type="text" placeholder="Ej. Corolla" className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none focus:border-blue-500" value={modelo} onChange={(e) => setModelo(e.target.value)} required={esVehiculo} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 mb-1">Año</label>
+                      <input type="number" placeholder="Ej. 2018" className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none focus:border-blue-500" value={anio} onChange={(e) => setAnio(e.target.value)} required={esVehiculo} />
+                    </div>
+                  </div>
                 </div>
               )}
-              <div className={esConectar ? 'md:col-span-2' : ''}>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">{esConectar ? 'En qué ciudad te ubicas' : 'Sector / Ciudad'}</label>
-                <input type="text" placeholder="Ej. Santo Domingo Este" className="w-full p-4 bg-gray-50 border-2 border-transparent rounded-xl focus:border-blue-600 outline-none transition-all" value={ubicacion} onChange={(e) => setUbicacion(e.target.value)} required />
+
+              {esConectar && (
+                <div className="bg-pink-50 p-6 rounded-2xl border border-pink-100 space-y-4 shadow-[inset_0_2px_10px_rgba(252,165,165,0.1)]">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-2xl">💖</span>
+                    <h3 className="font-bold text-pink-700 text-lg tracking-tight">Crea tu Perfil NÍTIDO</h3>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-pink-600 uppercase tracking-widest mb-1.5 ml-1">Mi Edad</label>
+                      <input type="number" min="18" max="99" placeholder="Ej. 25" className="w-full p-3 bg-white border-2 border-pink-100 rounded-xl outline-none focus:border-pink-400 focus:ring-4 focus:ring-pink-400/20 text-center font-bold text-gray-700" value={anio} onChange={(e) => setAnio(e.target.value)} required={esConectar} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-pink-600 uppercase tracking-widest mb-1.5 ml-1">Soy</label>
+                      <select className="w-full p-3 bg-white border-2 border-pink-100 rounded-xl outline-none focus:border-pink-400 focus:ring-4 focus:ring-pink-400/20 text-gray-700 font-medium" value={marca} onChange={(e) => setMarca(e.target.value)} required={esConectar}>
+                        <option value="" disabled>Seleccionar...</option>
+                        <option value="Hombre">Hombre</option>
+                        <option value="Mujer">Mujer</option>
+                        <option value="Ambos">Ambos</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-pink-600 uppercase tracking-widest mb-1.5 ml-1">Qué busco</label>
+                      <select className="w-full p-3 bg-white border-2 border-pink-100 rounded-xl outline-none focus:border-pink-400 focus:ring-4 focus:ring-pink-400/20 text-gray-700 font-medium" value={modelo} onChange={(e) => setModelo(e.target.value)} required={esConectar}>
+                        <option value="" disabled>Seleccionar...</option>
+                        <option value="Hombre">Hombre</option>
+                        <option value="Mujer">Mujer</option>
+                        <option value="Ambos">Ambos</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-pink-600 uppercase tracking-widest mb-1.5 ml-1">Tipo de Relación</label>
+                      <select className="w-full p-3 bg-white border-2 border-pink-100 rounded-xl outline-none focus:border-pink-400 focus:ring-4 focus:ring-pink-400/20 text-gray-700 font-medium" value={transmision} onChange={(e) => setTransmision(e.target.value)} required={esConectar}>
+                        <option value="" disabled>Seleccionar...</option>
+                        <option value="Amistad">Amistad 👋</option>
+                        <option value="Citas casuales">Citas casuales 🍻</option>
+                        <option value="Algo serio">Algo serio 💍</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="p-6 border-2 border-dashed border-gray-300 rounded-2xl bg-gray-50 text-center hover:border-blue-500 transition-all">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Sube las fotos (Obligatorio)</label>
+                <input type="file" multiple accept="image/*" onChange={handleFotosChange} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer" required />
+                {fotos.length > 0 && <p className="mt-3 text-sm text-green-600 font-bold">{fotos.length} foto(s) seleccionada(s)</p>}
               </div>
-            </div>
 
-            {/* Descripción */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">{esConectar ? 'Biografía (Cuéntanos de ti)' : 'Descripción'}</label>
-              <textarea placeholder={esConectar ? "Me encanta la playa, leer libros y busco una persona con quien compartir buenos momentos..." : "Motivo de superación, excelentes condiciones..."} rows={4} className="w-full p-4 bg-gray-50 border-2 border-transparent rounded-xl focus:border-blue-600 outline-none transition-all resize-none" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} required />
-            </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {!esConectar && (
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Precio (DOP)</label>
+                    <input type="number" placeholder="Ej. 850000" className="w-full p-4 bg-gray-50 border-2 border-transparent rounded-xl focus:border-blue-600 outline-none transition-all" value={precio} onChange={(e) => setPrecio(e.target.value)} required={!esConectar} />
+                  </div>
+                )}
+                <div className={esConectar ? 'md:col-span-2' : ''}>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">{esConectar ? 'En qué ciudad te ubicas' : 'Sector / Ciudad'}</label>
+                  <input type="text" placeholder="Ej. Santo Domingo Este" className="w-full p-4 bg-gray-50 border-2 border-transparent rounded-xl focus:border-blue-600 outline-none transition-all" value={ubicacion} onChange={(e) => setUbicacion(e.target.value)} required />
+                </div>
+              </div>
 
-            <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition-all shadow-lg shadow-blue-100">
-              {loading ? 'Subiendo datos y fotos...' : 'Publicar Anuncio'}
-            </button>
-          </form>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">{esConectar ? 'Biografía (Cuéntanos de ti)' : 'Descripción'}</label>
+                <textarea placeholder={esConectar ? "Me encanta la playa, leer libros y busco una persona con quien compartir buenos momentos..." : "Motivo de superación, excelentes condiciones..."} rows={4} className="w-full p-4 bg-gray-50 border-2 border-transparent rounded-xl focus:border-blue-600 outline-none transition-all resize-none" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} required />
+              </div>
+
+              <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition-all shadow-lg shadow-blue-100">
+                {loading ? 'Subiendo datos y fotos...' : 'Publicar Anuncio'}
+              </button>
+            </form>
           )}
 
-          {mensaje && (
-            <div className={`mt-6 p-4 rounded-xl text-center font-bold border ${exito ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-600 border-red-200'}`}>
+          {mensaje && !exito && (
+            <div className="mt-6 p-4 rounded-xl text-center font-bold border bg-red-50 text-red-600 border-red-200 animate-pulse">
               {mensaje}
             </div>
           )}

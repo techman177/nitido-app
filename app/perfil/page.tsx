@@ -43,6 +43,10 @@ export default function PerfilPage() {
         router.push('/login')
         return
       }
+      
+      // Asegurar que el caché del cliente esté fresco
+      router.refresh()
+      
       // Mock session for compatibility with legacy UI if needed
       setSession({ user } as Session)
 
