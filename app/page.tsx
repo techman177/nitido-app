@@ -11,6 +11,13 @@ interface FotoAnuncio {
   url_imagen: string
 }
 
+interface Category {
+  id: number
+  nombre: string
+  slug: string
+  icono: string
+}
+
 interface Anuncio {
   id: number
   titulo: string
@@ -24,20 +31,48 @@ interface Anuncio {
   categorias: { nombre: string }
 }
 
-export default async function Home() {
+export default async function Home({ searchParams }: { searchParams: { categoria?: string, sector?: string, min?: string, max?: string } }) {
   const supabase = await createClient()
 
-  const { data } = await supabase
+  // 1. Construir query dinámica
+  let query = supabase
     .from('anuncios')
     .select(`
       *,
       fotos_anuncio (url_imagen),
-      categorias (nombre)
+      categorias!inner (nombre, slug)
     `)
+
+  // Filtros aplicados desde la URL
+  if (searchParams.categoria) {
+    query = query.eq('categorias.slug', searchParams.categoria)
+  }
+  
+  if (searchParams.sector) {
+    query = query.eq('ubicacion_slug', searchParams.sector) // Asumiendo que el campo es ubicacion_slug o similar
+  }
+
+  if (searchParams.min) {
+    query = query.gte('precio', parseInt(searchParams.min))
+  }
+
+  if (searchParams.max) {
+    query = query.lte('precio', parseInt(searchParams.max))
+  }
+
+  const { data } = await query
     .order('es_premium', { ascending: false })
     .order('fecha_publicacion', { ascending: false })
 
   const ads = (data as unknown as Anuncio[]) || []
+
+  // Traer las categorías oficiales con sus iconos
+  const { data: categoriesData } = await supabase
+    .from('categorias')
+    .select('*')
+    .order('nombre')
+
+  const categories = (categoriesData as Category[]) || []
 
   return (
     <div className="min-h-screen bg-[#050505] text-gray-100 font-sans selection:bg-[#B49248] selection:text-black">
@@ -64,7 +99,7 @@ export default async function Home() {
       {/* 2. LA VITRINA INTELIGENTE (HomeAdsGallery) */}
       <section className="max-w-6xl mx-auto px-6 pt-20 border-t border-white/5 relative">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[1px] bg-gradient-to-r from-transparent via-[#B49248]/30 to-transparent"></div>
-        <HomeAdsGallery initialAds={ads} />
+        <HomeAdsGallery initialAds={ads} categories={categories} />
       </section>
 
       <Footer />

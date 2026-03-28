@@ -1,5 +1,8 @@
 import Link from 'next/link'
 import Image from 'next/image'
+import { useState, useEffect } from 'react'
+import { supabase } from '@/lib/supabase'
+import { Heart } from 'lucide-react'
 
 interface FotoAnuncio {
   url_imagen: string
@@ -54,6 +57,54 @@ function PlaceholderLogo({ pink }: { pink: boolean }) {
 /* ── Componente principal ── */
 
 export default function AdCard({ ad }: { ad: Anuncio }) {
+  const [isFavorite, setIsFavorite] = useState(false)
+  const [loadingFavorite, setLoadingFavorite] = useState(false)
+
+  useEffect(() => {
+    async function checkFavorite() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data } = await supabase
+        .from('favoritos')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('anuncio_id', ad.id)
+        .maybeSingle()
+      
+      if (data) setIsFavorite(true)
+    }
+    checkFavorite()
+  }, [ad.id])
+
+  const toggleFavorite = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    if (loadingFavorite) return
+    setLoadingFavorite(true)
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        alert('Debes iniciar sesión para guardar favoritos.')
+        return
+      }
+
+      if (isFavorite) {
+        await supabase.from('favoritos').delete().eq('user_id', user.id).eq('anuncio_id', ad.id)
+        setIsFavorite(false)
+      } else {
+        await supabase.from('favoritos').insert([{ user_id: user.id, anuncio_id: ad.id }])
+        setIsFavorite(true)
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error)
+    } finally {
+      setLoadingFavorite(false)
+    }
+  }
+
   const isConectar = ad.categorias?.nombre?.toLowerCase() === 'conectar'
   const hasImage = ad.fotos_anuncio && ad.fotos_anuncio.length > 0
 
@@ -66,6 +117,14 @@ export default function AdCard({ ad }: { ad: Anuncio }) {
       >
         {ad.es_premium && <PremiumBadge />}
         <CategoryBadge nombre={ad.categorias?.nombre} ubicacion={ad.ubicacion} pink />
+
+        {/* Botón Favoritos */}
+        <button 
+          onClick={toggleFavorite}
+          className="absolute top-4 right-20 z-30 p-2 rounded-full backdrop-blur-md bg-black/20 border border-white/10 text-white hover:scale-110 transition-all hover:bg-black/40"
+        >
+          <Heart className={`w-5 h-5 transition-all ${isFavorite ? 'fill-[#E5CC89] text-[#E5CC89] drop-shadow-[0_0_8px_rgba(180,146,72,0.8)]' : 'text-white'}`} />
+        </button>
 
         {/* Foto de fondo a pantalla completa */}
         <div className="absolute inset-0 bg-gray-100">
@@ -116,6 +175,14 @@ export default function AdCard({ ad }: { ad: Anuncio }) {
         )}
         {ad.es_premium && <PremiumBadge />}
         <CategoryBadge nombre={ad.categorias?.nombre} ubicacion={ad.ubicacion} pink={false} />
+
+        {/* Botón Favoritos */}
+        <button 
+          onClick={toggleFavorite}
+          className="absolute top-20 right-4 z-30 p-2 rounded-full backdrop-blur-md bg-black/40 border border-white/5 text-white hover:scale-110 transition-all group/fav"
+        >
+          <Heart className={`w-5 h-5 transition-all ${isFavorite ? 'fill-[#B49248] text-[#E5CC89] drop-shadow-[0_0_10px_rgba(180,146,72,0.6)] animate-bounce' : 'text-gray-400 group-hover/fav:text-white'}`} />
+        </button>
 
         {hasImage ? (
           <Image
