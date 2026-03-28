@@ -1,6 +1,50 @@
 import Link from "next/link";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import HomeSearchBar from "@/components/HomeSearchBar";
+import AdCard from "@/components/AdCard";
+import { createClient } from "@supabase/supabase-js";
 
-export default function Home() {
+// Deshabilitar cacheo agresivo para que la vitrina siempre traiga lo último
+export const revalidate = 0;
+
+interface FotoAnuncio {
+  url_imagen: string
+}
+
+interface Anuncio {
+  id: number
+  titulo: string
+  descripcion: string
+  precio: number
+  ubicacion: string
+  es_premium?: boolean
+  anio?: number
+  marca?: string
+  fotos_anuncio: FotoAnuncio[]
+  categorias: { nombre: string }
+}
+
+export default async function Home() {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  // Fetch the latest 12 ads, prioritizing premium ones
+  const { data } = await supabase
+    .from('anuncios')
+    .select(`
+      *,
+      fotos_anuncio (url_imagen),
+      categorias (nombre)
+    `)
+    .order('es_premium', { ascending: false })
+    .order('fecha_publicacion', { ascending: false })
+    .limit(12)
+
+  const ads = (data as unknown as Anuncio[]) || []
+
   const categorias = [
     { nombre: "Inmuebles", icono: "🏠", color: "bg-orange-50" },
     { nombre: "Empleos", icono: "💼", color: "bg-blue-50" },
@@ -10,24 +54,11 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen bg-white text-gray-900 font-sans selection:bg-blue-200">
+    <div className="min-h-screen bg-white text-gray-900 font-sans selection:bg-blue-200 pb-24">
       
-      {/* 1. NAVBAR (Navegación Superior) */}
-      <nav className="flex items-center justify-between px-8 py-5 border-b border-gray-100">
-        <div className="text-3xl font-black tracking-tighter text-blue-600">
-          NÍTIDO.
-        </div>
-        <div className="flex gap-6 items-center">
-          <Link href="/login" className="text-sm font-semibold text-gray-600 hover:text-blue-600 transition-colors">
-            Iniciar Sesión
-          </Link>
-          <Link href="/publicar" className="bg-blue-600 text-white px-6 py-2.5 rounded-full text-sm font-bold hover:bg-blue-700 transition-all shadow-md hover:shadow-lg">
-            Publicar Anuncio
-          </Link>
-        </div>
-      </nav>
+      <Navbar />
 
-      {/* 2. HERO SECTION (Buscador Principal) */}
+      {/* 1. HERO SECTION (Buscador Principal) */}
       <main className="max-w-4xl mx-auto px-6 pt-24 pb-16 text-center">
         <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight mb-6 text-gray-900">
           Encuentra lo que buscas, <span className="text-blue-600">sin bulto.</span>
@@ -36,27 +67,13 @@ export default function Home() {
           La plataforma premium de República Dominicana para comprar, vender, trabajar y conectar con gente real.
         </p>
 
-        {/* Buscador tipo Inteligencia Artificial */}
-        <div className="max-w-3xl mx-auto relative group shadow-sm hover:shadow-md transition-shadow rounded-2xl">
-          <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-            <svg className="h-6 w-6 text-gray-400 group-focus-within:text-blue-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-          <input 
-            type="text" 
-            className="block w-full pl-14 pr-32 py-5 text-lg border-2 border-gray-100 rounded-2xl focus:ring-0 focus:border-blue-600 transition-all outline-none bg-gray-50 focus:bg-white" 
-            placeholder="Ej. Apartamento en la Zona Oriental, Programador..."
-          />
-          <button className="absolute right-2 top-2 bottom-2 bg-blue-600 text-white px-8 rounded-xl font-bold hover:bg-blue-700 transition-colors">
-            Buscar
-          </button>
-        </div>
+        {/* Buscador Separado */}
+        <HomeSearchBar />
       </main>
 
-      {/* 3. CATEGORÍAS (Grid Interactivo) */}
-      <section className="max-w-5xl mx-auto px-6 pb-24">
-        <h2 className="text-2xl font-bold mb-8 text-gray-800">Explora por Categorías</h2>
+      {/* 2. CATEGORÍAS (Grid Interactivo) */}
+      <section className="max-w-5xl mx-auto px-6 pb-20 border-b border-gray-100">
+        <h2 className="text-2xl font-bold mb-8 text-gray-800 text-center md:text-left">Explora por Categorías</h2>
         
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {categorias.map((cat, index) => (
@@ -73,6 +90,37 @@ export default function Home() {
         </div>
       </section>
 
+      {/* 3. LA VITRINA (Anuncios Recientes y Premium) */}
+      <section className="max-w-6xl mx-auto px-6 pt-16">
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-3xl font-black text-gray-900 tracking-tight">Recién Publicado en NÍTIDO</h2>
+          <Link href="/buscar" className="text-blue-600 font-bold hover:text-blue-800 hidden md:block">Ver todos →</Link>
+        </div>
+
+        {ads.length === 0 ? (
+          <div className="bg-gray-50 p-12 rounded-3xl text-center border-2 border-dashed border-gray-200">
+            <span className="text-5xl mb-4 block">📦</span>
+            <p className="text-xl font-medium text-gray-500">Aún no hay anuncios disponibles.</p>
+            <Link href="/publicar" className="inline-block mt-4 bg-blue-600 text-white font-bold px-6 py-3 rounded-xl hover:bg-blue-700 transition">Sé el primero en Publicar</Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {ads.map((ad) => (
+              <AdCard key={ad.id} ad={ad as unknown as Parameters<typeof AdCard>[0]['ad']} />
+            ))}
+          </div>
+        )}
+        
+        {ads.length > 0 && (
+          <div className="mt-12 text-center md:hidden">
+            <Link href="/buscar" className="inline-block bg-gray-100 text-gray-600 font-bold px-8 py-3 rounded-xl hover:bg-gray-200 transition-colors">
+              Explorar Todos los Anuncios
+            </Link>
+          </div>
+        )}
+      </section>
+
+      <Footer />
     </div>
   );
 }
