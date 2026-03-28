@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import Navbar from '@/components/Navbar'
+import { User } from '@supabase/supabase-js'
 
 interface FotoAnuncio {
   url_imagen: string
@@ -15,6 +16,7 @@ interface Perfil {
 
 interface Anuncio {
   id: number
+  usuario_id: string
   titulo: string
   descripcion: string
   precio: number
@@ -32,9 +34,10 @@ interface Anuncio {
 
 interface AnuncioDetailsProps {
   ad: Anuncio
+  currentUser: User | null
 }
 
-export default function AnuncioDetails({ ad }: AnuncioDetailsProps) {
+export default function AnuncioDetails({ ad, currentUser }: AnuncioDetailsProps) {
   const adId = ad.id.toString()
   const [activeImageIndex, setActiveImageIndex] = useState(0)
   const [isSaved, setIsSaved] = useState(false)
@@ -63,6 +66,7 @@ export default function AnuncioDetails({ ad }: AnuncioDetailsProps) {
   const sellerPhone = ad.perfiles?.telefono?.replace(/\D/g, '') || "18290000000"
   const esConectar = ad.categorias?.nombre?.toLowerCase() === 'conectar'
   const whatsappUrl = `https://wa.me/${sellerPhone}?text=Hola,%20me%20interesa%20tu%20${esConectar ? 'perfil' : 'anuncio'}%20de%20NÍTIDO:%20${encodeURIComponent(ad.titulo)}`
+  const isOwner = currentUser?.id === ad.usuario_id
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900 pb-20">
@@ -235,7 +239,16 @@ export default function AnuncioDetails({ ad }: AnuncioDetailsProps) {
                 {isSaved ? 'Guardado en Favoritos' : 'Guardar Anuncio'}
               </button>
               
-              <div className="text-center mt-6">
+              <div className="text-center mt-6 flex flex-col gap-4">
+                 {isOwner && (
+                   <Link 
+                     href={`/editar/${ad.id}`}
+                     className="w-full bg-blue-100/50 text-blue-700 py-3 rounded-xl font-bold text-sm hover:bg-blue-100 transition-all flex items-center justify-center gap-2 border border-blue-200"
+                   >
+                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                     Editar este anuncio
+                   </Link>
+                 )}
                  <span className="text-xs text-gray-400">Publicado el {new Date(ad.fecha_publicacion).toLocaleDateString('es-DO', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
               </div>
             </div>

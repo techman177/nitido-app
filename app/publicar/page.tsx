@@ -175,8 +175,13 @@ export default function PublicarPage() {
       }
     }
 
-    setMensaje('¡Anuncio publicado NÍTIDO con todo y fotos! 🎉')
+    setMensaje('¡Anuncio publicado NÍTIDO con todo y fotos! 🎉 Redirigiendo a tu perfil...')
     setExito(true)
+    
+    // Redirigir después de 2 segundos para que el usuario vea el éxito
+    setTimeout(() => {
+      router.push('/perfil')
+    }, 2000)
     
     // Limpiar todo
     setTitulo(''); setDescripcion(''); setPrecio(''); setUbicacion(''); setCategoriaId('');

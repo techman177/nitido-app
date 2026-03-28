@@ -14,6 +14,7 @@ interface Perfil {
 
 interface Anuncio {
   id: number
+  usuario_id: string
   titulo: string
   descripcion: string
   precio: number
@@ -140,14 +141,15 @@ export default async function Page({ params }: Props) {
     productionDate: ad.anio?.toString(),
   }
 
+  const { data: { user } } = await supabase.auth.getUser()
+
   return (
     <>
-      {/* Add JSON-LD to the head */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <AnuncioDetails ad={ad} />
+      <AnuncioDetails ad={ad} currentUser={user} />
     </>
   )
 }
