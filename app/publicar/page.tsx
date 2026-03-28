@@ -97,6 +97,40 @@ export default function PublicarPage() {
   const esVehiculo = categoriaSeleccionada === 'vehículos' || categoriaSeleccionada === 'vehiculos';
   const esConectar = categoriaSeleccionada === 'conectar';
 
+  // Función para optimizar imágenes del lado del cliente
+  const compressImage = (file: File): Promise<Blob> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new window.Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          // Redimensionar si es muy grande (máx 1200px)
+          const MAX_WIDTH = 1200;
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          
+          canvas.toBlob((blob) => {
+            if (blob) resolve(blob);
+            else resolve(file); // Fallback al original
+          }, 'image/jpeg', 0.8); // 80% calidad
+        };
+      };
+    });
+  };
+
   const handleFotosChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       setFotos(Array.from(e.target.files))
@@ -161,14 +195,23 @@ export default function PublicarPage() {
       return
     }
 
-    setMensaje('Subiendo fotos, por favor espera...')
+    setMensaje('Subiendo y optimizando fotos, por favor espera...')
     for (const foto of fotos) {
       const fileExt = foto.name.split('.').pop()
       const fileName = `${Date.now()}-${Math.random()}.${fileExt}`
       const rutaGuardado = `${user.id}/${fileName}`
-      const { error: errorUpload } = await supabase.storage.from('anuncios').upload(rutaGuardado, foto)
+      
+      // Optimizar antes de subir
+      const optimizado = await compressImage(foto);
+
+      const { error: errorUpload } = await supabase.storage
+        .from('imagenes_anuncios')
+        .upload(rutaGuardado, optimizado, {
+          contentType: 'image/jpeg'
+        })
+
       if (!errorUpload) {
-        const { data: { publicUrl } } = supabase.storage.from('anuncios').getPublicUrl(rutaGuardado)
+        const { data: { publicUrl } } = supabase.storage.from('imagenes_anuncios').getPublicUrl(rutaGuardado)
         await supabase.from('fotos_anuncio').insert([{ anuncio_id: anuncioGuardado.id, url_imagen: publicUrl }])
       }
     }

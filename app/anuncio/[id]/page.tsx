@@ -10,6 +10,7 @@ interface FotoAnuncio {
 interface Perfil {
   nombre_completo: string
   telefono?: string
+  created_at?: string
 }
 
 interface Anuncio {
@@ -103,7 +104,7 @@ export default async function Page({ params }: Props) {
     .select(`
       *,
       fotos_anuncio (url_imagen),
-      perfiles (nombre_completo, telefono),
+      perfiles (nombre_completo, telefono, created_at),
       categorias (nombre)
     `)
     .eq('id', parseInt(id))
