@@ -11,7 +11,9 @@ export default function RegistroPage() {
   const [nombreEmpresa, setNombreEmpresa] = useState('')
   const [rnc, setRnc] = useState('')
   const [telefono, setTelefono] = useState('')
-  const [fechaNacimiento, setFechaNacimiento] = useState('')
+  const [dia, setDia] = useState('')
+  const [mes, setMes] = useState('')
+  const [anio, setAnio] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [errorMenorEdad, setErrorMenorEdad] = useState('')
@@ -25,7 +27,14 @@ export default function RegistroPage() {
     setErrorMenorEdad('')
     
     // Validación de Mayoría de Edad
-    const birthDate = new Date(fechaNacimiento)
+    if (!dia || !mes || !anio) {
+      setMessage('Por favor, selecciona tu fecha de nacimiento completa.')
+      setLoading(false)
+      return
+    }
+
+    const birthDateStr = `${anio}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`
+    const birthDate = new Date(birthDateStr)
     const today = new Date()
     let age = today.getFullYear() - birthDate.getFullYear()
     const m = today.getMonth() - birthDate.getMonth()
@@ -54,7 +63,7 @@ export default function RegistroPage() {
         id: authData.user.id, 
         nombre_completo: isEmpresa ? nombreEmpresa : nombre,
         telefono: telefono || null,
-        fecha_nacimiento: fechaNacimiento,
+        fecha_nacimiento: birthDateStr,
         tipo_cuenta: tipoCuenta,
         nombre_empresa: isEmpresa ? nombreEmpresa : null,
         rnc: isEmpresa ? rnc : null,
@@ -126,7 +135,26 @@ export default function RegistroPage() {
 
           <div>
             <label className="block text-sm font-semibold text-gray-600 mb-2">Fecha de Nacimiento <span className="text-red-500 font-bold">*</span></label>
-            <input type="date" className="w-full p-4 bg-gray-50 border-2 border-transparent rounded-xl focus:border-blue-600 outline-none transition-all text-gray-700" value={fechaNacimiento} onChange={(e) => setFechaNacimiento(e.target.value)} required />
+            <div className="grid grid-cols-3 gap-2">
+              <select className="p-4 bg-gray-50 border-2 border-transparent rounded-xl focus:border-blue-600 outline-none transition-all text-gray-700 font-medium cursor-pointer" value={dia} onChange={(e) => setDia(e.target.value)} required>
+                <option value="" disabled>Día</option>
+                {Array.from({ length: 31 }, (_, i) => i + 1).map(d => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+              <select className="p-4 bg-gray-50 border-2 border-transparent rounded-xl focus:border-blue-600 outline-none transition-all text-gray-700 font-medium cursor-pointer" value={mes} onChange={(e) => setMes(e.target.value)} required>
+                <option value="" disabled>Mes</option>
+                {['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'].map((m, i) => (
+                  <option key={i+1} value={i+1}>{m}</option>
+                ))}
+              </select>
+              <select className="p-4 bg-gray-50 border-2 border-transparent rounded-xl focus:border-blue-600 outline-none transition-all text-gray-700 font-medium cursor-pointer" value={anio} onChange={(e) => setAnio(e.target.value)} required>
+                <option value="" disabled>Año</option>
+                {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div>

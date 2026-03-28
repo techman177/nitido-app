@@ -110,8 +110,8 @@ export default function PublicarPage() {
     setLoading(true)
     setMensaje('')
 
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
       setMensaje('Debes iniciar sesión para publicar.')
       setLoading(false)
       return
@@ -124,7 +124,7 @@ export default function PublicarPage() {
     }
 
     const datosAnuncio: Partial<Anuncio> = {
-      usuario_id: session.user.id,
+      usuario_id: user.id,
       titulo,
       descripcion,
       precio: esConectar ? 0 : (precio ? parseFloat(precio) : 0),
@@ -159,7 +159,7 @@ export default function PublicarPage() {
     for (const foto of fotos) {
       const fileExt = foto.name.split('.').pop()
       const fileName = `${Date.now()}-${Math.random()}.${fileExt}`
-      const rutaGuardado = `${session.user.id}/${fileName}`
+      const rutaGuardado = `${user.id}/${fileName}`
 
       const { error: errorUpload } = await supabase.storage
         .from('anuncios')
