@@ -248,8 +248,8 @@ export default function PublicarPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050505] py-12 px-4 font-sans text-white">
-      <div className="max-w-3xl mx-auto">
+    <div className="min-h-screen bg-[#050505] py-8 md:py-16 px-4 font-sans text-white flex flex-col justify-center">
+      <div className="max-w-xl mx-auto w-full">
         <div className="flex justify-between items-center mb-8">
           <Link href="/" className="hover:opacity-80 transition-opacity">
             <Logo className="h-8 md:h-12 w-auto" />
@@ -257,7 +257,7 @@ export default function PublicarPage() {
           <Link href="/" className="text-sm font-semibold text-white/40 hover:text-white transition-colors">Volver al inicio</Link>
         </div>
 
-        <div className="bg-[#0a0a0b] p-8 md:p-10 rounded-3xl shadow-2xl border border-white/5 relative overflow-hidden">
+        <div className="bg-[#0a0a0b] p-8 sm:p-10 rounded-3xl shadow-2xl border border-white/5 relative overflow-hidden">
           {/* Brillo decorativo */}
           <div className="absolute top-0 right-0 w-32 h-32 bg-[#B49248]/5 blur-3xl rounded-full -mr-16 -mt-16"></div>
           
@@ -301,13 +301,13 @@ export default function PublicarPage() {
               </button>
             </div>
           ) : (
-            <form onSubmit={handlePublicar} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
+            <form onSubmit={handlePublicar} className="space-y-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-2">
                   <label className="block text-sm font-bold text-white/60 mb-2 ml-1">Título del anuncio</label>
                   <input type="text" placeholder="Ej. Toyota Corolla" className="w-full p-4 bg-white/5 border border-white/10 rounded-xl focus:border-[#B49248] outline-none transition-all text-white placeholder:text-white/20" value={titulo} onChange={(e) => setTitulo(e.target.value)} required />
                 </div>
-                <div>
+                <div className="space-y-2">
                   <label className="block text-sm font-bold text-white/60 mb-2 ml-1">Categoría</label>
                   <select className="w-full p-4 bg-white/5 border border-white/10 rounded-xl focus:border-[#B49248] outline-none transition-all cursor-pointer text-white appearance-none" value={categoriaId} onChange={(e) => setCategoriaId(e.target.value)} required>
                     <option value="" disabled className="bg-[#0a0a0b]">Selecciona una...</option>
@@ -384,16 +384,16 @@ export default function PublicarPage() {
                 {fotos.length > 0 && <p className="mt-4 text-xs text-[#B49248] font-black uppercase tracking-widest">{fotos.length} foto(s) listas para brillar</p>}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {!esConectar && (
-                  <div>
+                  <div className="space-y-2">
                     <label className="block text-sm font-bold text-white/60 mb-2 ml-1">Precio (DOP)</label>
                     <input type="number" placeholder="Ej. 850000" className="w-full p-4 bg-white/5 border border-white/10 rounded-xl focus:border-[#B49248] outline-none transition-all text-white placeholder:text-white/20" value={precio} onChange={(e) => setPrecio(e.target.value)} required={!esConectar} />
                   </div>
                 )}
-                <div className={esConectar ? 'md:col-span-2' : ''}>
+                <div className={`${esConectar ? 'md:col-span-2' : ''} space-y-4`}>
                   <label className="block text-sm font-bold text-white/60 mb-2 ml-1">{esConectar ? 'Ubicación' : 'Sector / Ciudad'}</label>
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     <select 
                       className="w-full p-4 bg-white/5 border border-white/10 rounded-xl focus:border-[#B49248] outline-none transition-all cursor-pointer text-white appearance-none"
                       value={sectorId}
@@ -429,7 +429,7 @@ export default function PublicarPage() {
                 </p>
               </div>
 
-              <button type="submit" disabled={loading} className="w-full bg-gradient-to-r from-[#B49248] to-[#E5CC89] text-black py-5 rounded-2xl font-black text-xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_10px_40px_rgba(180,146,72,0.2)] disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed">
+              <button type="submit" disabled={loading} className="w-full bg-gradient-to-r from-[#B49248] to-[#E5CC89] text-black py-4 md:py-5 rounded-2xl font-black text-lg md:text-xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_10px_40px_rgba(180,146,72,0.2)] disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed">
                 {loading ? 'Haciendo magia...' : 'Publicar Ahora'}
               </button>
             </form>

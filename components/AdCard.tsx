@@ -2,7 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Heart } from 'lucide-react'
+import { Heart, BadgeCheck } from 'lucide-react'
 import VerifiedBadge from './VerifiedBadge'
 import { toast } from 'react-hot-toast'
 
@@ -25,10 +25,21 @@ interface Anuncio {
   perfiles?: { 
     nombre_completo: string
     es_verificado: boolean
+    rol?: string
   }
 }
 
 /* ── Componentes auxiliares declarados FUERA del render ── */
+
+function EliteSeal() {
+  return (
+    <div className="absolute top-4 right-4 z-30 drop-shadow-[0_0_15px_rgba(180,146,72,0.6)] animate-in zoom-in duration-500">
+      <div className="bg-gradient-to-br from-[#B49248] via-[#E5CC89] to-[#B49248] p-1.5 rounded-full border border-white/20 shadow-2xl">
+        <BadgeCheck className="w-5 h-5 text-black" />
+      </div>
+    </div>
+  )
+}
 
 function PremiumBadge() {
   return (
@@ -116,13 +127,17 @@ export default function AdCard({ ad }: { ad: Anuncio }) {
   const hasImage = ad.fotos_anuncio && ad.fotos_anuncio.length > 0
 
   if (isConectar) {
+    const isPro = ad.perfiles?.rol === 'vendedor_pro' || ad.perfiles?.rol === 'admin'
+    const isElite = ad.es_premium || isPro
+
     // ─── TINDER-STYLE FULL-PHOTO CARD ───
     return (
     <Link
         href={`/anuncio/${ad.id}`}
-        className={`group relative rounded-3xl overflow-hidden shadow-2xl transition-all flex flex-col cursor-pointer aspect-[3/4] border ${ad.es_premium ? 'border-[#B49248] ring-4 ring-[#B49248]/20' : 'border-white/5 opacity-90 hover:opacity-100'}`}
+        className={`group relative rounded-3xl overflow-hidden shadow-2xl transition-all flex flex-col cursor-pointer aspect-[3/4] border ${isElite ? 'border-[#B49248] ring-4 ring-[#B49248]/20 elite-shimmer' : 'border-white/5 opacity-90 hover:opacity-100'}`}
       >
         {ad.es_premium && <PremiumBadge />}
+        {isPro && <EliteSeal />}
         <CategoryBadge nombre={ad.categorias?.nombre} ubicacion={ad.ubicacion} pink />
 
         {/* Botón Favoritos */}
@@ -173,17 +188,21 @@ export default function AdCard({ ad }: { ad: Anuncio }) {
     )
   }
 
+  const isPro = ad.perfiles?.rol === 'vendedor_pro' || ad.perfiles?.rol === 'admin'
+  const isElite = ad.es_premium || isPro
+
   // ─── STANDARD PRODUCT CARD ───
   return (
     <Link
       href={`/anuncio/${ad.id}`}
-      className={`group bg-[#0a0a0a] rounded-3xl overflow-hidden shadow-2xl transition-all flex flex-col cursor-pointer border ${ad.es_premium ? 'border-[#B49248] ring-4 ring-[#B49248]/20 bg-gradient-to-br from-[#1a160d] to-[#0a0a0a]' : 'border-white/5 hover:border-[#B49248]/30'}`}
+      className={`group bg-[#0a0a0a] rounded-3xl overflow-hidden shadow-2xl transition-all flex flex-col cursor-pointer border ${isElite ? 'border-[#B49248] ring-4 ring-[#B49248]/20 bg-gradient-to-br from-[#1a160d] to-[#0a0a0a] elite-shimmer' : 'border-white/5 hover:border-[#B49248]/30'}`}
     >
       <div className="relative h-64 overflow-hidden bg-gray-100">
-        {ad.es_premium && (
+        {isElite && (
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent z-10 pointer-events-none"></div>
         )}
         {ad.es_premium && <PremiumBadge />}
+        {isPro && <EliteSeal />}
         <CategoryBadge nombre={ad.categorias?.nombre} ubicacion={ad.ubicacion} pink={false} />
 
         {/* Botón Favoritos */}
@@ -209,10 +228,16 @@ export default function AdCard({ ad }: { ad: Anuncio }) {
       <div className="p-6 flex flex-col flex-1">
         <div className="flex flex-col gap-2 mb-4">
           <div className="flex items-center gap-1.5 mb-1">
-            <span className="text-[10px] font-black text-[#B49248] uppercase tracking-[0.2em]">
+            <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${isPro ? 'text-[#E5CC89]' : 'text-white/40'}`}>
               {ad.perfiles?.nombre_completo || 'Vendedor NÍTIDO'}
             </span>
-            {ad.perfiles?.es_verificado && <VerifiedBadge />}
+            {isPro && (
+              <span className="text-[9px] font-black text-[#B49248] uppercase tracking-tighter flex items-center gap-1">
+                <div className="w-1 h-1 bg-[#B49248] rounded-full"></div>
+                Verificado PRO
+              </span>
+            )}
+            {ad.perfiles?.es_verificado && !isPro && <VerifiedBadge />}
           </div>
           <h3 className="text-xl font-black leading-tight line-clamp-2 text-white group-hover:text-[#E5CC89] transition-colors">{ad.titulo}</h3>
         </div>

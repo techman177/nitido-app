@@ -7,11 +7,26 @@ import Logo from './Logo'
 
 export default function Navbar() {
   const [session, setSession] = useState<Session | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    const checkAdmin = async (user: any) => {
+      if (!user) {
+        setIsAdmin(false)
+        return
+      }
+      const { data: perfil } = await supabase
+        .from('perfiles')
+        .select('es_admin')
+        .eq('id', user.id)
+        .single()
+      setIsAdmin(perfil?.es_admin === true)
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
+      if (session?.user) checkAdmin(session.user)
       setLoading(false)
     })
 
@@ -19,6 +34,8 @@ export default function Navbar() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
+      if (session?.user) checkAdmin(session.user)
+      else setIsAdmin(false)
     })
 
     return () => subscription.unsubscribe()
@@ -40,6 +57,15 @@ export default function Navbar() {
           <>
             {session ? (
               <>
+                {isAdmin && (
+                  <Link 
+                    href="/admin" 
+                    className="hidden lg:flex items-center gap-2 bg-[#B49248]/10 border border-[#B49248]/30 text-[#E5CC89] px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#B49248]/20 transition-all mr-2"
+                  >
+                    <span className="w-2 h-2 bg-[#B49248] rounded-full animate-pulse"></span>
+                    Panel Admin
+                  </Link>
+                )}
                 <Link href="/favoritos" className="text-sm font-semibold text-gray-400 hover:text-[#E5CC89] transition-colors hidden md:block uppercase tracking-widest">
                   Favoritos (🤍)
                 </Link>

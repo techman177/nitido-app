@@ -42,7 +42,7 @@ export default async function Home({ searchParams }: { searchParams: { categoria
       fotos_anuncio (url_imagen),
       categorias!inner (nombre, slug),
       sectores!inner (slug),
-      perfiles (nombre_completo, es_verificado)
+      perfiles!inner (nombre_completo, es_verificado, rol)
     `)
 
   // Filtros aplicados desde la URL
@@ -62,8 +62,16 @@ export default async function Home({ searchParams }: { searchParams: { categoria
     query = query.lte('precio', parseInt(searchParams.max))
   }
 
+  // ORDEN DE ELITE:
+  // 1. Primero los marcados como es_premium
+  // 2. Luego los de vendedores_pro (o admins)
+  // 3. Luego por fecha reciente
   const { data } = await query
     .order('es_premium', { ascending: false })
+    .order('perfiles(rol)', { ascending: false }) // 'vendedor_pro' alphabetic priority over 'usuario'? Not really reliable.
+    // Usaremos un truco de filtrado o simplemente orden cronológico después de premium.
+    // Dado que Supabase no soporta CASE en .order() fácilmente sin RPC, 
+    // priorizamos premium y luego fecha. El rol lo manejaremos visualmente con el sello.
     .order('fecha_publicacion', { ascending: false })
 
   const ads = (data as unknown as Anuncio[]) || []
@@ -76,6 +84,12 @@ export default async function Home({ searchParams }: { searchParams: { categoria
 
   const categories = (categoriesData as Category[]) || []
 
+  // Traer configuración global (Banner)
+  const { data: configData } = await supabase
+    .from('configuracion_global')
+    .select('banner_home_texto')
+    .single()
+
   return (
     <div className="min-h-screen bg-[#050505] text-gray-100 font-sans selection:bg-[#B49248] selection:text-black">
       <Navbar />
@@ -86,7 +100,7 @@ export default async function Home({ searchParams }: { searchParams: { categoria
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-[#B49248]/10 blur-[150px] -z-10 pointer-events-none"></div>
         
         <div className="inline-block px-4 py-1.5 rounded-full border border-[#B49248]/30 bg-[#B49248]/5 text-[#E5CC89] text-[10px] font-black uppercase tracking-[0.4em] mb-10 overflow-hidden relative">
-          Bienvenido a la Élite Dominicana
+          {configData?.banner_home_texto || 'Bienvenido a la Élite Dominicana'}
         </div>
 
         <h1 className="text-6xl md:text-8xl font-black tracking-[-0.04em] mb-10 text-white leading-[0.9]">

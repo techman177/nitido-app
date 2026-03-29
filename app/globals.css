@@ -24,3 +24,14 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* --- ANIMACIONES ÉLITE NÍTIDO --- */
+@keyframes golden-shimmer {
+  0% { border-color: #B49248; box-shadow: 0 0 10px rgba(180, 146, 72, 0.2); }
+  50% { border-color: #E5CC89; box-shadow: 0 0 25px rgba(229, 204, 137, 0.4); }
+  100% { border-color: #B49248; box-shadow: 0 0 10px rgba(180, 146, 72, 0.2); }
+}
+
+.elite-shimmer {
+  animation: golden-shimmer 3s infinite ease-in-out;
+}
