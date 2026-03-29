@@ -125,7 +125,7 @@ export default function HomeAdsGallery({ initialAds, categories }: HomeAdsGaller
 
       {/* Ads Grid */}
       {filteredAds.length === 0 ? (
-        <div className="py-40 text-center animate-in fade-in zoom-in duration-700">
+        <div className="py-40 text-center animate-in fade-in zoom-in duration-700 px-6">
           <div className="relative inline-block mb-10">
             <div className="absolute inset-0 bg-[#B49248] blur-[60px] opacity-20 animate-pulse"></div>
             <div className="w-28 h-28 bg-gradient-to-tr from-[#B49248] to-[#E5CC89] rounded-full relative flex items-center justify-center text-5xl shadow-[0_0_50px_rgba(180,146,72,0.3)]">
@@ -142,7 +142,7 @@ export default function HomeAdsGallery({ initialAds, categories }: HomeAdsGaller
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 pb-20">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 pb-20 px-4 sm:px-0">
           {filteredAds.map((ad, idx) => (
             <div key={ad.id} className="animate-in fade-in slide-in-from-bottom-5 duration-500" style={{ animationDelay: `${idx * 50}ms` }}>
               <AdCard ad={ad} />

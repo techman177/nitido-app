@@ -59,7 +59,6 @@ export async function middleware(request: NextRequest) {
   // 2. Proteger la ruta /admin (Ya existente)
   if (request.nextUrl.pathname.startsWith('/admin')) {
     if (!user) {
-      console.log('Intento de acceso Admin - Estado: false (No logueado)')
       return NextResponse.redirect(new URL('/login', request.url))
     }
 
@@ -71,7 +70,6 @@ export async function middleware(request: NextRequest) {
       .single()
 
     const isAdmin = perfil?.es_admin === true
-    console.log(`Intento de acceso Admin - Usuario: ${user.email} - Estado: ${isAdmin}`)
 
     if (!isAdmin) {
       return NextResponse.redirect(new URL('/', request.url))

@@ -60,13 +60,14 @@ export default function Navbar() {
                 {isAdmin && (
                   <Link 
                     href="/admin" 
-                    className="hidden lg:flex items-center gap-2 bg-[#B49248]/10 border border-[#B49248]/30 text-[#E5CC89] px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#B49248]/20 transition-all mr-2"
+                    className="flex lg:flex items-center gap-1.5 bg-[#B49248]/10 border border-[#B49248]/30 text-[#E5CC89] px-3 md:px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#B49248]/20 transition-all mr-1 md:mr-2"
                   >
-                    <span className="w-2 h-2 bg-[#B49248] rounded-full animate-pulse"></span>
-                    Panel Admin
+                    <span className="w-1.5 h-1.5 bg-[#B49248] rounded-full animate-pulse"></span>
+                    <span className="hidden sm:inline">Panel Admin</span>
+                    <span className="sm:hidden">Admin</span>
                   </Link>
                 )}
-                <Link href="/favoritos" className="text-sm font-semibold text-gray-400 hover:text-[#E5CC89] transition-colors hidden md:block uppercase tracking-widest">
+                <Link href="/favoritos" className="text-sm font-semibold text-gray-400 hover:text-[#E5CC89] transition-colors hidden lg:block uppercase tracking-widest">
                   Favoritos (🤍)
                 </Link>
                 <Link href="/perfil" className="text-sm font-bold text-gray-300 hover:text-white transition-colors flex items-center gap-2 group">
@@ -75,8 +76,8 @@ export default function Navbar() {
                     {session.user.email?.charAt(0).toUpperCase()}
                   </div>
                 </Link>
-                <button onClick={handleLogout} className="text-sm font-semibold text-gray-400 hover:text-red-500 transition-colors hidden sm:block">
-                  Cerrar Sesión
+                <button onClick={handleLogout} className="text-sm font-semibold text-gray-400 hover:text-red-500 transition-colors hidden md:block">
+                  Salir
                 </button>
               </>
             ) : (
