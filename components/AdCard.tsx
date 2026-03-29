@@ -3,6 +3,8 @@ import Image from 'next/image'
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Heart } from 'lucide-react'
+import VerifiedBadge from './VerifiedBadge'
+import { toast } from 'react-hot-toast'
 
 interface FotoAnuncio {
   url_imagen: string
@@ -20,6 +22,10 @@ interface Anuncio {
   modelo?: string
   fotos_anuncio: FotoAnuncio[]
   categorias: { nombre: string }
+  perfiles?: { 
+    nombre_completo: string
+    es_verificado: boolean
+  }
 }
 
 /* ── Componentes auxiliares declarados FUERA del render ── */
@@ -87,7 +93,7 @@ export default function AdCard({ ad }: { ad: Anuncio }) {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
-        alert('Debes iniciar sesión para guardar favoritos.')
+        toast.error('Registrate para guardar tus favoritos ✨')
         return
       }
 
@@ -97,6 +103,7 @@ export default function AdCard({ ad }: { ad: Anuncio }) {
       } else {
         await supabase.from('favoritos').insert([{ user_id: user.id, anuncio_id: ad.id }])
         setIsFavorite(true)
+        toast.success('Guardado en favoritos', { icon: '🤍' })
       }
     } catch (error) {
       console.error('Error toggling favorite:', error)
@@ -156,7 +163,10 @@ export default function AdCard({ ad }: { ad: Anuncio }) {
             )}
           </div>
 
-          <h3 className="text-2xl font-bold leading-tight text-white group-hover:text-pink-200 transition-colors drop-shadow-lg mb-2">{ad.titulo}</h3>
+          <div className="flex items-center gap-2 mb-2">
+            <h3 className="text-2xl font-bold leading-tight text-white group-hover:text-pink-200 transition-colors drop-shadow-lg">{ad.titulo}</h3>
+            {ad.perfiles?.es_verificado && <VerifiedBadge />}
+          </div>
           <p className="text-gray-300 text-sm line-clamp-2 drop-shadow-md font-medium">{ad.descripcion}</p>
         </div>
       </Link>
@@ -198,7 +208,12 @@ export default function AdCard({ ad }: { ad: Anuncio }) {
 
       <div className="p-6 flex flex-col flex-1">
         <div className="flex flex-col gap-2 mb-4">
-          <span className="text-[10px] font-black text-[#B49248] uppercase tracking-[0.2em]">{ad.categorias?.nombre}</span>
+          <div className="flex items-center gap-1.5 mb-1">
+            <span className="text-[10px] font-black text-[#B49248] uppercase tracking-[0.2em]">
+              {ad.perfiles?.nombre_completo || 'Vendedor NÍTIDO'}
+            </span>
+            {ad.perfiles?.es_verificado && <VerifiedBadge />}
+          </div>
           <h3 className="text-xl font-black leading-tight line-clamp-2 text-white group-hover:text-[#E5CC89] transition-colors">{ad.titulo}</h3>
         </div>
         

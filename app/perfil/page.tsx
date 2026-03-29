@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import Navbar from '@/components/Navbar'
+import VerifiedBadge from '@/components/VerifiedBadge'
 
 import { Session } from '@supabase/supabase-js'
 
@@ -15,6 +16,7 @@ interface FotoAnuncio {
 interface PerfilData {
   id: string
   nombre_completo: string
+  es_verificado?: boolean
 }
 
 interface Anuncio {
@@ -117,7 +119,10 @@ export default function PerfilPage() {
             {profile?.nombre_completo?.charAt(0).toUpperCase() || session?.user.email?.charAt(0).toUpperCase()}
           </div>
           <div className="text-center md:text-left">
-            <h1 className="text-3xl font-black text-gray-900">{profile?.nombre_completo || 'Usuario NÍTIDO'}</h1>
+            <div className="flex items-center justify-center md:justify-start gap-2">
+              <h1 className="text-3xl font-black text-gray-900">{profile?.nombre_completo || 'Usuario NÍTIDO'}</h1>
+              {profile?.es_verificado && <VerifiedBadge />}
+            </div>
             <p className="text-gray-500 font-medium">{session?.user.email}</p>
           </div>
           <div className="md:ml-auto">

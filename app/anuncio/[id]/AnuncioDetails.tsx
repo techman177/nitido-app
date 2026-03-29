@@ -4,6 +4,9 @@ import Link from 'next/link'
 import Image from 'next/image'
 import Navbar from '@/components/Navbar'
 import { User } from '@supabase/supabase-js'
+import VerifiedBadge from '@/components/VerifiedBadge'
+import WhatsAppContactButton from '@/components/WhatsAppContactButton'
+import SecurityModal from '@/components/SecurityModal'
 
 interface FotoAnuncio {
   url_imagen: string
@@ -13,6 +16,7 @@ interface Perfil {
   nombre_completo: string
   telefono?: string
   created_at?: string
+  es_verificado?: boolean
 }
 
 interface Anuncio {
@@ -42,13 +46,30 @@ export default function AnuncioDetails({ ad, currentUser }: AnuncioDetailsProps)
   const adId = ad.id.toString()
   const [activeImageIndex, setActiveImageIndex] = useState(0)
   const [isSaved, setIsSaved] = useState(false)
+  const [showSecurityModal, setShowSecurityModal] = useState(false)
+  const [hasSeenSecurity, setHasSeenSecurity] = useState(true) // Default to true to prevent flickering
 
   useEffect(() => {
     const saved = JSON.parse(localStorage.getItem('favoritos_nitido') || '[]')
     if (saved.includes(adId)) {
       setIsSaved(true)
     }
+
+    const seenSecurity = localStorage.getItem('nitido_safety_seen') === 'true'
+    setHasSeenSecurity(seenSecurity)
   }, [adId])
+
+  const handleContactClick = () => {
+    if (!hasSeenSecurity) {
+      setShowSecurityModal(true)
+    }
+  }
+
+  const handleSecurityConfirm = () => {
+    localStorage.setItem('nitido_safety_seen', 'true')
+    setHasSeenSecurity(true)
+    setShowSecurityModal(false)
+  }
 
   const toggleSave = () => {
     let saved = JSON.parse(localStorage.getItem('favoritos_nitido') || '[]')
@@ -65,12 +86,13 @@ export default function AnuncioDetails({ ad, currentUser }: AnuncioDetailsProps)
   const hasImages = images.length > 0
   const sellerPhone = ad.perfiles?.telefono?.replace(/\D/g, '') || "18290000000"
   const esConectar = ad.categorias?.nombre?.toLowerCase() === 'conectar'
-  const whatsappUrl = `https://wa.me/${sellerPhone}?text=Hola,%20vi%20tu%20anuncio%20"${encodeURIComponent(ad.titulo)}"%20por%20${ad.precio.toLocaleString()}%20en%20NÍTIDO%20y%20me%20interesa.%20¿Sigue%20disponible?`
   const isOwner = currentUser?.id === ad.usuario_id
   
   const memberSince = ad.perfiles?.created_at 
     ? new Date(ad.perfiles.created_at).toLocaleDateString('es-DO', { month: 'long', year: 'numeric' })
     : 'Miembro reciente'
+
+  const memberInitial = ad.perfiles?.nombre_completo?.charAt(0).toUpperCase() || 'U'
 
   return (
     <div className="min-h-screen bg-[#050505] font-sans text-white pb-20">
@@ -209,18 +231,27 @@ export default function AnuncioDetails({ ad, currentUser }: AnuncioDetailsProps)
                   {ad.titulo}
                 </h1>
                 
-                <div className="space-y-4">
-                  <a 
-                    href={whatsappUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="w-full bg-gradient-to-r from-[#B49248] to-[#E5CC89] text-black py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-[1.02] transition-all shadow-[0_10px_30px_rgba(180,146,72,0.2)] flex items-center justify-center gap-3 group"
-                  >
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.9 1.866 1.87 2.893 4.35 2.892 6.99-.004 5.453-4.436 9.887-9.885 9.887m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
-                    Contactar Vía WhatsApp
-                  </a>
+                <div className="space-y-4 relative">
+                  {!hasSeenSecurity ? (
+                    <button 
+                      onClick={handleContactClick}
+                      className="w-full bg-black p-[4px] rounded-[2rem] hover:scale-[1.02] transition-all shadow-[0_20px_40px_rgba(180,146,72,0.15)] block group"
+                    >
+                      <div className="bg-black rounded-[1.8rem] py-5 px-6 flex items-center justify-center gap-3 border-2 border-transparent relative overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-r from-[#B49248] to-[#E5CC89] -z-10 opacity-100 p-[2px]"></div>
+                        <div className="absolute inset-[2px] bg-black rounded-[1.7rem] -z-10"></div>
+                        <span className="text-[#E5CC89] font-black text-xs uppercase tracking-[0.2em]">Ver contacto seguro</span>
+                      </div>
+                    </button>
+                  ) : (
+                    <WhatsAppContactButton 
+                      phone={ad.perfiles?.telefono} 
+                      title={ad.titulo} 
+                      price={ad.precio} 
+                    />
+                  )}
 
-                  <button className="w-full bg-white/5 text-white/60 py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white/10 transition-all border border-white/5">
+                  <button className="w-full bg-white/5 text-white/60 py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest hover:bg-white/10 transition-all border border-white/5">
                     Enviar un Mensaje
                   </button>
 
@@ -239,10 +270,6 @@ export default function AnuncioDetails({ ad, currentUser }: AnuncioDetailsProps)
                 <div className="flex items-center gap-5">
                   <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-[#B49248] to-[#E5CC89] flex items-center justify-center text-black text-2xl font-black shadow-lg">
                     {ad.perfiles?.nombre_completo?.charAt(0) || 'U'}
-                  </div>
-                  <div>
-                    <h3 className="font-black text-white tracking-tight">{ad.perfiles?.nombre_completo || 'Usuario Premium'}</h3>
-                    <p className="text-xs font-bold text-[#E5CC89] uppercase tracking-widest">Vendedor Verificado</p>
                   </div>
                 </div>
                 <div className="flex justify-between items-center text-[10px] font-black text-white/30 uppercase tracking-[0.2em] border-t border-white/5 pt-6">
@@ -264,6 +291,12 @@ export default function AnuncioDetails({ ad, currentUser }: AnuncioDetailsProps)
           </div>
         </div>
       </main>
+
+      <SecurityModal 
+        isOpen={showSecurityModal} 
+        onClose={() => setShowSecurityModal(false)} 
+        onConfirm={handleSecurityConfirm} 
+      />
     </div>
   )
 }

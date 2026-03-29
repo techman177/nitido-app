@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Logo from '@/components/Logo'
+import { toast } from 'react-hot-toast'
 
 interface Category {
   id: number
@@ -23,6 +24,13 @@ interface Anuncio {
   anio?: number | null
   transmision?: string
   combustible?: string
+  sector_id?: number
+}
+
+interface Sector {
+  id: number
+  nombre: string
+  slug: string
 }
 
 export default function PublicarPage() {
@@ -31,6 +39,7 @@ export default function PublicarPage() {
   const [precio, setPrecio] = useState('')
   const [ubicacion, setUbicacion] = useState('')
   const [categoriaId, setCategoriaId] = useState('')
+  const [sectorId, setSectorId] = useState('')
   
   // Vehículos
   const [marca, setMarca] = useState('')
@@ -43,12 +52,13 @@ export default function PublicarPage() {
   const [fotos, setFotos] = useState<File[]>([])
 
   const [categorias, setCategorias] = useState<Category[]>([])
+  const [sectores, setSectores] = useState<Sector[]>([])
   const [loading, setLoading] = useState(false)
-  const [mensaje, setMensaje] = useState('')
   const [exito, setExito] = useState(false)
   const [idAnuncioGuardado, setIdAnuncioGuardado] = useState<number | null>(null)
   const [loadingSession, setLoadingSession] = useState(true)
   const [mayorDeEdad, setMayorDeEdad] = useState<boolean | null>(null)
+  const [aceptaTerminos, setAceptaTerminos] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -83,13 +93,18 @@ export default function PublicarPage() {
       const { data } = await supabase.from('categorias').select('*')
       if (data) setCategorias(data)
     }
+    async function cargarSectores() {
+      const { data } = await supabase.from('sectores').select('*').order('nombre')
+      if (data) setSectores(data)
+    }
     cargarCategorias()
+    cargarSectores()
   }, [])
 
   if (loadingSession) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="w-12 h-12 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin"></div>
+      <div className="min-h-screen flex items-center justify-center bg-[#050505]">
+        <div className="w-12 h-12 border-4 border-[#B49248]/20 border-t-[#B49248] rounded-full animate-spin"></div>
       </div>
     )
   }
@@ -141,17 +156,21 @@ export default function PublicarPage() {
   const handlePublicar = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    setMensaje('')
+    if (!aceptaTerminos) {
+      toast.error('Debes aceptar los términos y condiciones')
+      setLoading(false)
+      return
+    }
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      setMensaje('Debes iniciar sesión para publicar.')
+      toast.error('Sesión expirada. Por favor inicia sesión de nuevo.')
       setLoading(false)
       return
     }
 
     if (fotos.length === 0) {
-      setMensaje('¡Sube al menos una foto para que el anuncio se vea profesional!')
+      toast.error('Sube al menos una foto para tu anuncio')
       setLoading(false)
       return
     }
@@ -162,7 +181,8 @@ export default function PublicarPage() {
       descripcion,
       precio: esConectar ? 0 : (precio ? parseFloat(precio) : 0),
       ubicacion,
-      categoria_id: parseInt(categoriaId)
+      categoria_id: parseInt(categoriaId),
+      sector_id: sectorId ? parseInt(sectorId) : undefined
     }
 
     if (esVehiculo || esConectar) {
@@ -183,7 +203,7 @@ export default function PublicarPage() {
       }, { onConflict: 'id' })
     
     if (errorPerfil) {
-      setMensaje('Error al preparar el perfil: ' + errorPerfil.message)
+      toast.error('Error al preparar el perfil: ' + errorPerfil.message)
       setLoading(false)
       return
     }
@@ -191,12 +211,12 @@ export default function PublicarPage() {
 
     const { data: anuncioGuardado, error: errorAnuncio } = await supabase.from('anuncios').insert([datosAnuncio]).select().single()
     if (errorAnuncio) {
-      setMensaje('Error al crear el anuncio: ' + errorAnuncio.message)
+      toast.error('Error al crear el anuncio: ' + errorAnuncio.message)
       setLoading(false)
       return
     }
 
-    setMensaje('Subiendo y optimizando fotos, por favor espera...')
+    const toastLoading = toast.loading('Optimizando y subiendo tus fotos...')
     for (const foto of fotos) {
       const fileExt = foto.name.split('.').pop()
       const fileName = `${Date.now()}-${Math.random()}.${fileExt}`
@@ -217,7 +237,8 @@ export default function PublicarPage() {
       }
     }
 
-    setMensaje('¡Anuncio publicado NÍTIDO con todo y fotos! 🎉')
+    toast.dismiss(toastLoading)
+    toast.success('¡Anuncio publicado NÍTIDO! 🎉', { duration: 5000 })
     setIdAnuncioGuardado(anuncioGuardado.id)
     setExito(true)
     router.refresh()
@@ -227,7 +248,7 @@ export default function PublicarPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 font-sans text-gray-900">
+    <div className="min-h-screen bg-[#050505] py-12 px-4 font-sans text-white">
       <div className="max-w-3xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <Link href="/" className="hover:opacity-80 transition-opacity">
@@ -236,42 +257,45 @@ export default function PublicarPage() {
           <Link href="/" className="text-sm font-semibold text-white/40 hover:text-white transition-colors">Volver al inicio</Link>
         </div>
 
-        <div className="bg-white p-8 md:p-10 rounded-3xl shadow-xl border border-gray-100">
-          <h1 className="text-3xl font-bold mb-2">Publica tu anuncio</h1>
-          <p className="text-gray-500 mb-8">Llega a miles de personas en República Dominicana.</p>
+        <div className="bg-[#0a0a0b] p-8 md:p-10 rounded-3xl shadow-2xl border border-white/5 relative overflow-hidden">
+          {/* Brillo decorativo */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-[#B49248]/5 blur-3xl rounded-full -mr-16 -mt-16"></div>
+          
+          <h1 className="text-3xl font-black mb-2 text-white tracking-tight">Publica tu anuncio</h1>
+          <p className="text-white/40 mb-8 font-medium">Llega a la audiencia más exclusiva de RD.</p>
 
           {mayorDeEdad === false ? (
-            <div className="bg-red-50 p-8 rounded-2xl text-center border-2 border-red-200 shadow-sm mt-4">
+            <div className="bg-red-500/5 p-8 rounded-2xl text-center border border-red-500/20 mt-4">
               <span className="text-6xl mb-4 block">🚫</span>
-              <h2 className="text-2xl font-black text-red-700 mb-3 tracking-tight">Acceso Bloqueado</h2>
-              <p className="text-red-600 font-medium mb-2">Debes ser mayor de 18 años para publicar anuncios en NÍTIDO.</p>
-              <p className="text-sm text-red-500/80">Si consideras que esto es un error o tu cuenta es antigua, por favor actualiza tu fecha de nacimiento en Editar Perfil.</p>
+              <h2 className="text-2xl font-black text-red-500 mb-3 tracking-tight">Acceso Bloqueado</h2>
+              <p className="text-red-400 font-medium mb-2">Debes ser mayor de 18 años para publicar anuncios en NÍTIDO.</p>
+              <p className="text-sm text-red-400/40">Si consideras que esto es un error, por favor actualiza tu perfil.</p>
             </div>
           ) : exito && idAnuncioGuardado ? (
-            <div className="mt-8 bg-gradient-to-br from-green-50 to-white p-8 rounded-[2.5rem] border-2 border-green-200 shadow-2xl animate-in zoom-in duration-500 text-center">
-              <div className="w-20 h-20 bg-green-500 text-white rounded-full flex items-center justify-center text-4xl mx-auto mb-6 shadow-lg shadow-green-200">
-                ✅
+            <div className="mt-8 bg-[#B49248]/5 p-10 rounded-[2.5rem] border border-[#B49248]/20 text-center relative overflow-hidden">
+               <div className="w-20 h-20 bg-gradient-to-r from-[#B49248] to-[#E5CC89] text-black rounded-full flex items-center justify-center text-4xl mx-auto mb-6 shadow-[0_0_30px_rgba(180,146,72,0.3)]">
+                ✨
               </div>
-              <h2 className="text-3xl font-black text-gray-900 mb-2 tracking-tight">¡Publicación Exitosa!</h2>
-              <p className="text-gray-500 font-medium mb-8">Tu anuncio ya está disponible para todo el mundo en NÍTIDO.</p>
+              <h2 className="text-3xl font-black text-white mb-2 tracking-tight">¡Publicación Finalizada!</h2>
+              <p className="text-white/40 font-medium mb-8">Tu anuncio ya brilla en la vitrina principal de NÍTIDO.</p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link 
                   href={`/anuncio/${idAnuncioGuardado}`}
-                  className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 flex items-center justify-center gap-2"
+                  className="bg-gradient-to-r from-[#B49248] to-[#E5CC89] text-black px-8 py-4 rounded-2xl font-black text-lg hover:scale-105 transition-all shadow-xl flex items-center justify-center gap-2"
                 >
-                  Ver mi Anuncio →
+                  Ver mi Anuncio
                 </Link>
                 <Link 
                   href="/perfil"
-                  className="bg-gray-100 text-gray-700 px-8 py-4 rounded-2xl font-bold text-lg hover:bg-gray-200 transition-all flex items-center justify-center"
+                  className="bg-white/5 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:bg-white/10 border border-white/10 transition-all flex items-center justify-center"
                 >
                   Ir a mi Perfil
                 </Link>
               </div>
               <button 
-                onClick={() => { setExito(false); setIdAnuncioGuardado(null); setMensaje(''); }}
-                className="mt-8 text-sm font-bold text-gray-400 hover:text-blue-600 transition-colors"
+                onClick={() => { setExito(false); setIdAnuncioGuardado(null); }}
+                className="mt-8 text-sm font-bold text-white/30 hover:text-[#E5CC89] transition-colors"
               >
                 Publicar otro anuncio
               </button>
@@ -280,117 +304,137 @@ export default function PublicarPage() {
             <form onSubmit={handlePublicar} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Título del anuncio</label>
-                  <input type="text" placeholder="Ej. Toyota Corolla" className="w-full p-4 bg-gray-50 border-2 border-transparent rounded-xl focus:border-blue-600 outline-none transition-all" value={titulo} onChange={(e) => setTitulo(e.target.value)} required />
+                  <label className="block text-sm font-bold text-white/60 mb-2 ml-1">Título del anuncio</label>
+                  <input type="text" placeholder="Ej. Toyota Corolla" className="w-full p-4 bg-white/5 border border-white/10 rounded-xl focus:border-[#B49248] outline-none transition-all text-white placeholder:text-white/20" value={titulo} onChange={(e) => setTitulo(e.target.value)} required />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Categoría</label>
-                  <select className="w-full p-4 bg-gray-50 border-2 border-transparent rounded-xl focus:border-blue-600 outline-none transition-all cursor-pointer" value={categoriaId} onChange={(e) => setCategoriaId(e.target.value)} required>
-                    <option value="" disabled>Selecciona una...</option>
+                  <label className="block text-sm font-bold text-white/60 mb-2 ml-1">Categoría</label>
+                  <select className="w-full p-4 bg-white/5 border border-white/10 rounded-xl focus:border-[#B49248] outline-none transition-all cursor-pointer text-white appearance-none" value={categoriaId} onChange={(e) => setCategoriaId(e.target.value)} required>
+                    <option value="" disabled className="bg-[#0a0a0b]">Selecciona una...</option>
                     {categorias.map((cat) => (
-                      <option key={cat.id} value={cat.id}>{cat.nombre}</option>
+                      <option key={cat.id} value={cat.id} className="bg-[#0a0a0b]">{cat.nombre}</option>
                     ))}
                   </select>
                 </div>
               </div>
 
               {esVehiculo && (
-                <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100 space-y-4">
-                  <h3 className="font-bold text-blue-800 mb-4">Detalles del Vehículo</h3>
+                <div className="bg-white/5 p-6 rounded-2xl border border-white/10 space-y-4">
+                  <h3 className="font-bold text-[#B49248] mb-4 uppercase text-xs tracking-widest">Detalles del Vehículo</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-gray-600 mb-1">Marca</label>
-                      <input type="text" placeholder="Ej. Toyota" className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none focus:border-blue-500" value={marca} onChange={(e) => setMarca(e.target.value)} required={esVehiculo} />
+                      <label className="block text-[10px] font-bold text-white/40 mb-1.5 uppercase ml-1">Marca</label>
+                      <input type="text" placeholder="Ej. Toyota" className="w-full p-3 bg-white/5 border border-white/5 rounded-xl outline-none focus:border-[#B49248] text-white" value={marca} onChange={(e) => setMarca(e.target.value)} required={esVehiculo} />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-gray-600 mb-1">Modelo</label>
-                      <input type="text" placeholder="Ej. Corolla" className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none focus:border-blue-500" value={modelo} onChange={(e) => setModelo(e.target.value)} required={esVehiculo} />
+                      <label className="block text-[10px] font-bold text-white/40 mb-1.5 uppercase ml-1">Modelo</label>
+                      <input type="text" placeholder="Ej. Corolla" className="w-full p-3 bg-white/5 border border-white/5 rounded-xl outline-none focus:border-[#B49248] text-white" value={modelo} onChange={(e) => setModelo(e.target.value)} required={esVehiculo} />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-gray-600 mb-1">Año</label>
-                      <input type="number" placeholder="Ej. 2018" className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none focus:border-blue-500" value={anio} onChange={(e) => setAnio(e.target.value)} required={esVehiculo} />
+                      <label className="block text-[10px] font-bold text-white/40 mb-1.5 uppercase ml-1">Año</label>
+                      <input type="number" placeholder="Ej. 2018" className="w-full p-3 bg-white/5 border border-white/5 rounded-xl outline-none focus:border-[#B49248] text-white" value={anio} onChange={(e) => setAnio(e.target.value)} required={esVehiculo} />
                     </div>
                   </div>
                 </div>
               )}
 
               {esConectar && (
-                <div className="bg-pink-50 p-6 rounded-2xl border border-pink-100 space-y-4 shadow-[inset_0_2px_10px_rgba(252,165,165,0.1)]">
+                <div className="bg-pink-500/5 p-6 rounded-2xl border border-pink-500/10 space-y-4">
                   <div className="flex items-center gap-2 mb-4">
                     <span className="text-2xl">💖</span>
-                    <h3 className="font-bold text-pink-700 text-lg tracking-tight">Crea tu Perfil NÍTIDO</h3>
+                    <h3 className="font-bold text-pink-500 text-lg tracking-tight">Crea tu Perfil NÍTIDO</h3>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
-                      <label className="block text-xs font-bold text-pink-600 uppercase tracking-widest mb-1.5 ml-1">Mi Edad</label>
-                      <input type="number" min="18" max="99" placeholder="Ej. 25" className="w-full p-3 bg-white border-2 border-pink-100 rounded-xl outline-none focus:border-pink-400 focus:ring-4 focus:ring-pink-400/20 text-center font-bold text-gray-700" value={anio} onChange={(e) => setAnio(e.target.value)} required={esConectar} />
+                      <label className="block text-[10px] font-bold text-pink-500/60 uppercase tracking-widest mb-1.5 ml-1">Mi Edad</label>
+                      <input type="number" min="18" max="99" placeholder="25" className="w-full p-3 bg-white/5 border border-pink-500/20 rounded-xl outline-none focus:border-pink-500 text-center font-bold text-white" value={anio} onChange={(e) => setAnio(e.target.value)} required={esConectar} />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-pink-600 uppercase tracking-widest mb-1.5 ml-1">Soy</label>
-                      <select className="w-full p-3 bg-white border-2 border-pink-100 rounded-xl outline-none focus:border-pink-400 focus:ring-4 focus:ring-pink-400/20 text-gray-700 font-medium" value={marca} onChange={(e) => setMarca(e.target.value)} required={esConectar}>
-                        <option value="" disabled>Seleccionar...</option>
-                        <option value="Hombre">Hombre</option>
-                        <option value="Mujer">Mujer</option>
-                        <option value="Ambos">Ambos</option>
+                      <label className="block text-[10px] font-bold text-pink-500/60 uppercase tracking-widest mb-1.5 ml-1">Soy</label>
+                      <select className="w-full p-3 bg-white/5 border border-pink-500/20 rounded-xl outline-none focus:border-pink-500 text-white font-medium appearance-none" value={marca} onChange={(e) => setMarca(e.target.value)} required={esConectar}>
+                        <option value="" disabled className="bg-[#0a0a0b]">Soy...</option>
+                        <option value="Hombre" className="bg-[#0a0a0b]">Hombre</option>
+                        <option value="Mujer" className="bg-[#0a0a0b]">Mujer</option>
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-pink-600 uppercase tracking-widest mb-1.5 ml-1">Qué busco</label>
-                      <select className="w-full p-3 bg-white border-2 border-pink-100 rounded-xl outline-none focus:border-pink-400 focus:ring-4 focus:ring-pink-400/20 text-gray-700 font-medium" value={modelo} onChange={(e) => setModelo(e.target.value)} required={esConectar}>
-                        <option value="" disabled>Seleccionar...</option>
-                        <option value="Hombre">Hombre</option>
-                        <option value="Mujer">Mujer</option>
-                        <option value="Ambos">Ambos</option>
+                      <label className="block text-[10px] font-bold text-pink-500/60 uppercase tracking-widest mb-1.5 ml-1">Busco</label>
+                      <select className="w-full p-3 bg-white/5 border border-pink-500/20 rounded-xl outline-none focus:border-pink-500 text-white font-medium appearance-none" value={modelo} onChange={(e) => setModelo(e.target.value)} required={esConectar}>
+                        <option value="" disabled className="bg-[#0a0a0b]">Busco...</option>
+                        <option value="Hombre" className="bg-[#0a0a0b]">Hombre</option>
+                        <option value="Mujer" className="bg-[#0a0a0b]">Mujer</option>
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-pink-600 uppercase tracking-widest mb-1.5 ml-1">Tipo de Relación</label>
-                      <select className="w-full p-3 bg-white border-2 border-pink-100 rounded-xl outline-none focus:border-pink-400 focus:ring-4 focus:ring-pink-400/20 text-gray-700 font-medium" value={transmision} onChange={(e) => setTransmision(e.target.value)} required={esConectar}>
-                        <option value="" disabled>Seleccionar...</option>
-                        <option value="Amistad">Amistad 👋</option>
-                        <option value="Citas casuales">Citas casuales 🍻</option>
-                        <option value="Algo serio">Algo serio 💍</option>
+                      <label className="block text-[10px] font-bold text-pink-500/60 uppercase tracking-widest mb-1.5 ml-1">Relación</label>
+                      <select className="w-full p-3 bg-white/5 border border-pink-500/20 rounded-xl outline-none focus:border-pink-500 text-white font-medium appearance-none" value={transmision} onChange={(e) => setTransmision(e.target.value)} required={esConectar}>
+                        <option value="" disabled className="bg-[#0a0a0b]">Tipo...</option>
+                        <option value="Amistad" className="bg-[#0a0a0b]">Amistad</option>
+                        <option value="Citas casuales" className="bg-[#0a0a0b]">Citas</option>
+                        <option value="Algo serio" className="bg-[#0a0a0b]">Algo serio</option>
                       </select>
                     </div>
                   </div>
                 </div>
               )}
 
-              <div className="p-6 border-2 border-dashed border-gray-300 rounded-2xl bg-gray-50 text-center hover:border-blue-500 transition-all">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Sube las fotos (Obligatorio)</label>
-                <input type="file" multiple accept="image/*" onChange={handleFotosChange} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer" required />
-                {fotos.length > 0 && <p className="mt-3 text-sm text-green-600 font-bold">{fotos.length} foto(s) seleccionada(s)</p>}
+              <div className="p-10 border-2 border-dashed border-white/10 rounded-2xl bg-white/5 text-center hover:border-[#B49248]/50 transition-all group cursor-pointer">
+                <label className="block text-sm font-bold text-white/60 mb-3 ml-1 group-hover:text-[#E5CC89] transition-colors">Sube las mejores fotos</label>
+                <input type="file" multiple accept="image/*" onChange={handleFotosChange} className="block w-full text-sm text-white/40 file:mr-4 file:py-2.5 file:px-6 file:rounded-full file:border-0 file:text-xs file:font-black file:bg-[#B49248] file:text-black hover:file:bg-[#E5CC89] cursor-pointer" required />
+                {fotos.length > 0 && <p className="mt-4 text-xs text-[#B49248] font-black uppercase tracking-widest">{fotos.length} foto(s) listas para brillar</p>}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {!esConectar && (
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Precio (DOP)</label>
-                    <input type="number" placeholder="Ej. 850000" className="w-full p-4 bg-gray-50 border-2 border-transparent rounded-xl focus:border-blue-600 outline-none transition-all" value={precio} onChange={(e) => setPrecio(e.target.value)} required={!esConectar} />
+                    <label className="block text-sm font-bold text-white/60 mb-2 ml-1">Precio (DOP)</label>
+                    <input type="number" placeholder="Ej. 850000" className="w-full p-4 bg-white/5 border border-white/10 rounded-xl focus:border-[#B49248] outline-none transition-all text-white placeholder:text-white/20" value={precio} onChange={(e) => setPrecio(e.target.value)} required={!esConectar} />
                   </div>
                 )}
                 <div className={esConectar ? 'md:col-span-2' : ''}>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">{esConectar ? 'En qué ciudad te ubicas' : 'Sector / Ciudad'}</label>
-                  <input type="text" placeholder="Ej. Santo Domingo Este" className="w-full p-4 bg-gray-50 border-2 border-transparent rounded-xl focus:border-blue-600 outline-none transition-all" value={ubicacion} onChange={(e) => setUbicacion(e.target.value)} required />
+                  <label className="block text-sm font-bold text-white/60 mb-2 ml-1">{esConectar ? 'Ubicación' : 'Sector / Ciudad'}</label>
+                  <div className="space-y-3">
+                    <select 
+                      className="w-full p-4 bg-white/5 border border-white/10 rounded-xl focus:border-[#B49248] outline-none transition-all cursor-pointer text-white appearance-none"
+                      value={sectorId}
+                      onChange={(e) => setSectorId(e.target.value)}
+                      required
+                    >
+                      <option value="" disabled className="bg-[#0a0a0b]">Selecciona tu Sector...</option>
+                      {sectores.map((s) => (
+                        <option key={s.id} value={s.id} className="bg-[#0a0a0b]">{s.nombre}</option>
+                      ))}
+                    </select>
+                    <input type="text" placeholder="Ej. Calle Palo Hincado #4" className="w-full p-4 bg-white/5 border border-white/10 rounded-xl focus:border-[#B49248] outline-none transition-all text-white placeholder:text-white/20" value={ubicacion} onChange={(e) => setUbicacion(e.target.value)} required />
+                  </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">{esConectar ? 'Biografía (Cuéntanos de ti)' : 'Descripción'}</label>
-                <textarea placeholder={esConectar ? "Me encanta la playa, leer libros y busco una persona con quien compartir buenos momentos..." : "Motivo de superación, excelentes condiciones..."} rows={4} className="w-full p-4 bg-gray-50 border-2 border-transparent rounded-xl focus:border-blue-600 outline-none transition-all resize-none" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} required />
+                <label className="block text-sm font-bold text-white/60 mb-2 ml-1">{esConectar ? 'Biografía' : 'Descripción detallada'}</label>
+                <textarea placeholder={esConectar ? "Cuéntanos de ti..." : "Describe lo que vendes..."} rows={4} className="w-full p-4 bg-white/5 border border-white/10 rounded-xl focus:border-[#B49248] outline-none transition-all resize-none text-white placeholder:text-white/20" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} required />
               </div>
 
-              <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition-all shadow-lg shadow-blue-100">
-                {loading ? 'Subiendo datos y fotos...' : 'Publicar Anuncio'}
+              {/* Legal Checkbox */}
+              <div className="bg-white/5 p-6 rounded-2xl border border-white/5 flex items-start gap-4 hover:border-[#B49248]/30 transition-all cursor-pointer group" onClick={() => setAceptaTerminos(!aceptaTerminos)}>
+                <div className={`mt-1 flex-shrink-0 w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${aceptaTerminos ? 'bg-[#B49248] border-[#B49248]' : 'bg-transparent border-white/20'}`}>
+                  {aceptaTerminos && (
+                    <svg className="w-4 h-4 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
+                <p className="text-sm font-medium text-white/40 leading-snug">
+                  Acepto los <Link href="/terminos" target="_blank" className="text-[#E5CC89] hover:underline">términos de NÍTIDO</Link> y confirmo la legalidad de mi producto.
+                </p>
+              </div>
+
+              <button type="submit" disabled={loading} className="w-full bg-gradient-to-r from-[#B49248] to-[#E5CC89] text-black py-5 rounded-2xl font-black text-xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_10px_40px_rgba(180,146,72,0.2)] disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed">
+                {loading ? 'Haciendo magia...' : 'Publicar Ahora'}
               </button>
             </form>
           )}
 
-          {mensaje && !exito && (
-            <div className="mt-6 p-4 rounded-xl text-center font-bold border bg-red-50 text-red-600 border-red-200 animate-pulse">
-              {mensaje}
-            </div>
-          )}
         </div>
       </div>
     </div>

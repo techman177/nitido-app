@@ -82,8 +82,8 @@ export default function HomeAdsGallery({ initialAds, categories }: HomeAdsGaller
       <CategoryBar categories={categories} />
 
       {/* 2. BARRA DE BÚSQUEDA Y FILTROS AVANZADOS */}
-      <div className="space-y-4">
-        <div className="bg-[#0a0a0a] p-2 rounded-[2.5rem] border border-white/5 shadow-2xl sticky top-24 z-40 backdrop-blur-xl bg-black/40">
+      <div className="space-y-4 px-2 sm:px-0">
+        <div className="bg-[#0a0a0b]/80 p-2 rounded-[2.5rem] border border-white/10 shadow-2xl sticky top-20 z-40 backdrop-blur-2xl">
           <div className="flex flex-col lg:flex-row gap-2">
             
             {/* Search Input */}
@@ -95,15 +95,15 @@ export default function HomeAdsGallery({ initialAds, categories }: HomeAdsGaller
               </div>
               <input 
                 type="text" 
-                placeholder="¿Qué buscas hoy?" 
-                className="w-full pl-14 pr-6 py-5 bg-transparent text-white placeholder-white/20 outline-none font-bold text-lg"
+                placeholder="¿Qué buscas?" 
+                className="w-full pl-14 pr-6 py-4 md:py-5 bg-transparent text-white placeholder-white/20 outline-none font-bold text-base md:text-lg transition-all"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
 
             {/* Location Selector */}
-            <div className="lg:w-72">
+            <div className="lg:w-80">
                <LocationFilter />
             </div>
           </div>
@@ -125,12 +125,21 @@ export default function HomeAdsGallery({ initialAds, categories }: HomeAdsGaller
 
       {/* Ads Grid */}
       {filteredAds.length === 0 ? (
-        <div className="py-32 text-center animate-in fade-in zoom-in duration-500">
-          <div className="w-24 h-24 bg-gradient-to-tr from-[#B49248] to-[#E5CC89] rounded-full mx-auto mb-8 flex items-center justify-center text-4xl shadow-[0_0_50px_rgba(180,146,72,0.2)]">
-            🔍
+        <div className="py-40 text-center animate-in fade-in zoom-in duration-700">
+          <div className="relative inline-block mb-10">
+            <div className="absolute inset-0 bg-[#B49248] blur-[60px] opacity-20 animate-pulse"></div>
+            <div className="w-28 h-28 bg-gradient-to-tr from-[#B49248] to-[#E5CC89] rounded-full relative flex items-center justify-center text-5xl shadow-[0_0_50px_rgba(180,146,72,0.3)]">
+              ✨
+            </div>
           </div>
-          <h3 className="text-2xl font-black text-white mb-2 tracking-tighter">No encontramos nada similar</h3>
-          <p className="text-white/40 font-medium">Prueba con otros términos o filtros</p>
+          <h3 className="text-3xl font-black text-white mb-3 tracking-tighter">Tu búsqueda no tiene límites,</h3>
+          <p className="text-white/30 font-medium text-lg max-w-sm mx-auto">Pero no encontramos nada con estos filtros. Prueba algo nuevo.</p>
+          <button 
+            onClick={() => setSearchTerm('')}
+            className="mt-10 text-[#E5CC89] font-black uppercase tracking-widest text-xs hover:text-white transition-colors"
+          >
+            Limpiar búsqueda →
+          </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 pb-20">

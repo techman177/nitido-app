@@ -40,7 +40,9 @@ export default async function Home({ searchParams }: { searchParams: { categoria
     .select(`
       *,
       fotos_anuncio (url_imagen),
-      categorias!inner (nombre, slug)
+      categorias!inner (nombre, slug),
+      sectores!inner (slug),
+      perfiles (nombre_completo, es_verificado)
     `)
 
   // Filtros aplicados desde la URL
@@ -49,7 +51,7 @@ export default async function Home({ searchParams }: { searchParams: { categoria
   }
   
   if (searchParams.sector) {
-    query = query.eq('ubicacion_slug', searchParams.sector) // Asumiendo que el campo es ubicacion_slug o similar
+    query = query.eq('sectores.slug', searchParams.sector)
   }
 
   if (searchParams.min) {

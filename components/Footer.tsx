@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import Logo from './Logo'
+import { ShieldAlert } from 'lucide-react'
 
 export default function Footer() {
   return (
@@ -67,8 +68,12 @@ export default function Footer() {
             </p>
           </div>
           
-          <div className="flex gap-8 text-[11px] font-medium text-gray-600">
-            <Link href="/terminos" className="hover:text-white transition-colors">Términos</Link>
+          <div className="flex gap-8 text-[11px] font-black uppercase tracking-[0.2em] text-gray-700">
+            <Link href="/terminos" className="hover:text-[#E5CC89] transition-all">Términos</Link>
+            <Link href="/seguridad" className="hover:text-red-400 transition-all flex items-center gap-1.5 focus:text-red-400 group">
+              <ShieldAlert className="w-3.5 h-3.5 transition-colors text-white/10 group-hover:text-red-500" />
+              Seguridad
+            </Link>
             <Link href="/privacidad" className="hover:text-white transition-colors">Privacidad</Link>
             <Link href="/contacto" className="hover:text-white transition-colors">Contacto</Link>
           </div>
