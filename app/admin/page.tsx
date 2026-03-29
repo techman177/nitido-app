@@ -13,16 +13,9 @@ import {
   Tooltip, ResponsiveContainer, AreaChart, Area 
 } from 'recharts'
 
-// --- MOCKS DE DATOS DE ALTO VOLUMEN ---
+// --- ANALÍTICAS REALES PRÓXIMAMENTE ---
 const mockDataAnalytics = [
-  { name: 'Lun', ads: 45, users: 12 },
-  { name: 'Mar', ads: 52, users: 15 },
-  { name: 'Mie', ads: 48, users: 10 },
-  { name: 'Jue', ads: 61, users: 22 },
-  { name: 'Vie', ads: 55, users: 30 },
-  { name: 'Sab', ads: 89, users: 45 },
-  { name: 'Dom', ads: 120, users: 60 },
-  { name: 'Lun', ads: 70, users: 25 },
+  { name: '', ads: 0, users: 0 },
 ];
 
 export default function AdminDashboard() {

@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
-  title: "NÍTIDO | El Mercado Dinámico de República Dominicana",
-  description: "Encuentra y vende lo que necesites en NÍTIDO. La plataforma más rápida, moderna y segura para anuncios clasificados en la República Dominicana.",
+  title: "NÍTIDO | El Mercado Dinámico de RD",
+  description: "La vitrina más exclusiva de República Dominicana. Compra y vende vehículos, tecnología e inmuebles con un toque de lujo y seguridad de élite.",
   keywords: ["clasificados", "dominicana", "ventas", "compras", "carros", "inmuebles", "elite", "nítido"],
   openGraph: {
     title: "NÍTIDO | El Mercado Dinámico",

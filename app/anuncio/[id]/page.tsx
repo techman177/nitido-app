@@ -29,6 +29,7 @@ interface Anuncio {
   fotos_anuncio: FotoAnuncio[]
   perfiles: Perfil
   categorias: { nombre: string }
+  sectores?: { nombre: string }
 }
 
 type Props = {
@@ -49,7 +50,8 @@ export async function generateMetadata(
       *,
       fotos_anuncio (url_imagen),
       perfiles (nombre_completo),
-      categorias (nombre)
+      categorias (nombre),
+      sectores (nombre)
     `)
     .eq('id', parseInt(id))
     .single()
@@ -105,7 +107,8 @@ export default async function Page({ params }: Props) {
       *,
       fotos_anuncio (url_imagen),
       perfiles (nombre_completo, telefono, created_at),
-      categorias (nombre)
+      categorias (nombre),
+      sectores (nombre)
     `)
     .eq('id', parseInt(id))
     .single()

@@ -47,9 +47,9 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="flex items-center justify-between px-4 md:px-8 py-3 md:py-4 border-b border-white/5 bg-black/95 sticky top-0 z-50 shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-md">
-      <Link href="/" className="hover:opacity-80 transition-opacity flex items-center">
-        <Logo className="h-8 md:h-12 w-auto" />
+    <nav className="flex items-center justify-between px-3 md:px-8 py-3 md:py-4 border-b border-white/5 bg-black/95 sticky top-0 z-50 shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-md overflow-x-hidden">
+      <Link href="/" className="hover:opacity-80 transition-opacity flex items-center flex-shrink-0">
+        <Logo className="h-7 md:h-12 w-auto" />
       </Link>
       
       <div className="flex gap-4 md:gap-6 items-center">
