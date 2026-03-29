@@ -128,16 +128,17 @@ export default function PublicarPage() {
   const compressImage = (file: File): Promise<Blob> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
+      reader.onerror = () => resolve(file); // Fallback en error de lectura
       reader.readAsDataURL(file);
       reader.onload = (event) => {
         const img = new window.Image();
+        img.onerror = () => resolve(file); // Fallback en error de imagen
         img.src = event.target?.result as string;
         img.onload = () => {
           const canvas = document.createElement('canvas');
           let width = img.width;
           let height = img.height;
           
-          // Redimensionar si es muy grande (máx 1200px)
           const MAX_WIDTH = 1200;
           if (width > MAX_WIDTH) {
             height *= MAX_WIDTH / width;
@@ -151,8 +152,8 @@ export default function PublicarPage() {
           
           canvas.toBlob((blob) => {
             if (blob) resolve(blob);
-            else resolve(file); // Fallback al original
-          }, 'image/jpeg', 0.8); // 80% calidad
+            else resolve(file);
+          }, 'image/jpeg', 0.8);
         };
       };
     });
@@ -180,7 +181,7 @@ export default function PublicarPage() {
       return
     }
 
-    // --- VALIDACIÓN MANUAL PARA EVITAR POPUPS NATIVOS ROTOS EN MÓVIL ---
+    // VALIDACIONES
     if (!titulo.trim()) { toast.error('El título es requerido'); setLoading(false); return; }
     if (!categoriaId) { toast.error('Selecciona una categoría'); setLoading(false); return; }
     if (!sectorId) { toast.error('Selecciona tu sector o ciudad'); setLoading(false); return; }
@@ -192,13 +193,6 @@ export default function PublicarPage() {
       if (!marca.trim()) { toast.error('La marca es requerida'); setLoading(false); return; }
       if (!modelo.trim()) { toast.error('El modelo es requerido'); setLoading(false); return; }
       if (!anio) { toast.error('El año es requerido'); setLoading(false); return; }
-    }
-
-    if (esConectar) {
-      if (!anio) { toast.error('Tu edad es requerida'); setLoading(false); return; }
-      if (!marca) { toast.error('Selecciona qué eres'); setLoading(false); return; }
-      if (!modelo) { toast.error('Selecciona qué buscas'); setLoading(false); return; }
-      if (!transmision) { toast.error('Selecciona el tipo de relación'); setLoading(false); return; }
     }
 
     if (fotos.length === 0) {
@@ -225,21 +219,11 @@ export default function PublicarPage() {
       if (esVehiculo) datosAnuncio.combustible = combustible
     }
 
-    // --- SOLUCIÓN ROBUSTA: UPSERT PARA PERFILES ---
-    // Aseguramos que el perfil exista sin riesgo de duplicados ("upsert")
-    const { error: errorPerfil } = await supabase
-      .from('perfiles')
-      .upsert({ 
-        id: user.id, 
-        nombre_completo: user.user_metadata?.nombre_completo || 'Usuario NÍTIDO' 
-      }, { onConflict: 'id' })
-    
-    if (errorPerfil) {
-      toast.error('Error al preparar el perfil: ' + errorPerfil.message)
-      setLoading(false)
-      return
-    }
-    // ----------------------------------------------
+    // Asegurar perfil
+    await supabase.from('perfiles').upsert({ 
+      id: user.id, 
+      nombre_completo: user.user_metadata?.nombre_completo || 'Usuario NÍTIDO' 
+    }, { onConflict: 'id' })
 
     const { data: anuncioGuardado, error: errorAnuncio } = await supabase.from('anuncios').insert([datosAnuncio]).select().single()
     if (errorAnuncio) {
@@ -249,34 +233,43 @@ export default function PublicarPage() {
     }
 
     const toastLoading = toast.loading('Optimizando y subiendo tus fotos...')
-    for (const foto of fotos) {
-      const fileExt = foto.name.split('.').pop()
-      const fileName = `${Date.now()}-${Math.random()}.${fileExt}`
-      const rutaGuardado = `${user.id}/${fileName}`
-      
-      // Optimizar antes de subir
-      const optimizado = await compressImage(foto);
+    
+    try {
+      for (const foto of fotos) {
+        const fileExt = foto.name.split('.').pop()
+        const fileName = `${Date.now()}-${Math.random()}.${fileExt}`
+        const rutaGuardado = `${user.id}/${fileName}`
+        
+        const optimizado = await compressImage(foto);
 
-      const { error: errorUpload } = await supabase.storage
-        .from('imagenes_anuncios')
-        .upload(rutaGuardado, optimizado, {
-          contentType: 'image/jpeg'
-        })
+        const { error: errorUpload } = await supabase.storage
+          .from('imagenes_anuncios')
+          .upload(rutaGuardado, optimizado, {
+            contentType: 'image/jpeg'
+          })
 
-      if (!errorUpload) {
-        const { data: { publicUrl } } = supabase.storage.from('imagenes_anuncios').getPublicUrl(rutaGuardado)
-        await supabase.from('fotos_anuncio').insert([{ anuncio_id: anuncioGuardado.id, url_imagen: publicUrl }])
+        if (!errorUpload) {
+          const { data: { publicUrl } } = supabase.storage.from('imagenes_anuncios').getPublicUrl(rutaGuardado)
+          await supabase.from('fotos_anuncio').insert([{ 
+            anuncio_id: anuncioGuardado.id, 
+            url_imagen: publicUrl 
+          }])
+        }
       }
-    }
 
-    toast.dismiss(toastLoading)
-    toast.success('¡Anuncio publicado NÍTIDO! 🎉', { duration: 5000 })
-    setIdAnuncioGuardado(anuncioGuardado.id)
-    setExito(true)
-    router.refresh()
-    setTitulo(''); setDescripcion(''); setPrecio(''); setUbicacion(''); setCategoriaId('');
-    setMarca(''); setModelo(''); setAnio(''); setTransmision(''); setCombustible(''); setFotos([]);
-    setLoading(false)
+      toast.success('¡Anuncio publicado NÍTIDO! 🎉', { duration: 5000 })
+      setIdAnuncioGuardado(anuncioGuardado.id)
+      setExito(true)
+      router.refresh()
+      setTitulo(''); setDescripcion(''); setPrecio(''); setUbicacion(''); setCategoriaId('');
+      setMarca(''); setModelo(''); setAnio(''); setTransmision(''); setCombustible(''); setFotos([]);
+    } catch (err) {
+      console.error('Error en proceso:', err)
+      toast.error('Hubo un problema al subir las fotos.')
+    } finally {
+      toast.dismiss(toastLoading)
+      setLoading(false)
+    }
   }
 
   return (
@@ -290,7 +283,6 @@ export default function PublicarPage() {
         </div>
 
         <div className="bg-[#0a0a0b] p-6 sm:p-10 rounded-[2rem] shadow-2xl border border-white/5 relative overflow-hidden">
-          {/* Brillo decorativo */}
           <div className="absolute top-0 right-0 w-32 h-32 bg-[#B49248]/5 blur-3xl rounded-full -mr-16 -mt-16"></div>
           
           <h1 className="text-2xl sm:text-3xl font-black mb-2 text-white tracking-tight">Publica tu anuncio</h1>
@@ -370,46 +362,6 @@ export default function PublicarPage() {
                 </div>
               )}
 
-              {esConectar && (
-                <div className="bg-pink-500/5 p-6 rounded-2xl border border-pink-500/10 space-y-4">
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="text-2xl">💖</span>
-                    <h3 className="font-bold text-pink-500 text-lg tracking-tight">Crea tu Perfil NÍTIDO</h3>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div>
-                      <label className="block text-[10px] font-bold text-pink-500/60 uppercase tracking-widest mb-1.5 ml-1">Mi Edad</label>
-                      <input type="number" min="18" max="99" placeholder="25" className="w-full p-3 bg-white/5 border border-pink-500/20 rounded-xl outline-none focus:border-pink-500 text-center font-bold text-white" value={anio} onChange={(e) => setAnio(e.target.value)} />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-pink-500/60 uppercase tracking-widest mb-1.5 ml-1">Soy</label>
-                      <select className="w-full p-3 bg-white/5 border border-pink-500/20 rounded-xl outline-none focus:border-pink-500 text-white font-medium appearance-none" value={marca} onChange={(e) => setMarca(e.target.value)}>
-                        <option value="" disabled className="bg-[#0a0a0b]">Soy...</option>
-                        <option value="Hombre" className="bg-[#0a0a0b]">Hombre</option>
-                        <option value="Mujer" className="bg-[#0a0a0b]">Mujer</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-pink-500/60 uppercase tracking-widest mb-1.5 ml-1">Busco</label>
-                      <select className="w-full p-3 bg-white/5 border border-pink-500/20 rounded-xl outline-none focus:border-pink-500 text-white font-medium appearance-none" value={modelo} onChange={(e) => setModelo(e.target.value)}>
-                        <option value="" disabled className="bg-[#0a0a0b]">Busco...</option>
-                        <option value="Hombre" className="bg-[#0a0a0b]">Hombre</option>
-                        <option value="Mujer" className="bg-[#0a0a0b]">Mujer</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-pink-500/60 uppercase tracking-widest mb-1.5 ml-1">Relación</label>
-                      <select className="w-full p-3 bg-white/5 border border-pink-500/20 rounded-xl outline-none focus:border-pink-500 text-white font-medium appearance-none" value={transmision} onChange={(e) => setTransmision(e.target.value)}>
-                        <option value="" disabled className="bg-[#0a0a0b]">Tipo...</option>
-                        <option value="Amistad" className="bg-[#0a0a0b]">Amistad</option>
-                        <option value="Citas casuales" className="bg-[#0a0a0b]">Citas</option>
-                        <option value="Algo serio" className="bg-[#0a0a0b]">Algo serio</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               <div className="p-10 border-2 border-dashed border-white/10 rounded-2xl bg-white/5 text-center hover:border-[#B49248]/50 transition-all group cursor-pointer">
                 <label className="block text-sm font-bold text-white/60 mb-3 ml-1 group-hover:text-[#E5CC89] transition-colors">Sube las mejores fotos</label>
                 <input type="file" multiple accept="image/*" onChange={handleFotosChange} className="block w-full text-sm text-white/40 file:mr-4 file:py-2.5 file:px-6 file:rounded-full file:border-0 file:text-xs file:font-black file:bg-[#B49248] file:text-black hover:file:bg-[#E5CC89] cursor-pointer" required />
@@ -484,7 +436,6 @@ export default function PublicarPage() {
                 <textarea placeholder={esConectar ? "Cuéntanos de ti..." : "Describe lo que vendes..."} rows={4} className="w-full p-4 bg-white/5 border border-white/10 rounded-xl focus:border-[#B49248] outline-none transition-all resize-none text-white placeholder:text-white/20" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} />
               </div>
 
-              {/* Legal Checkbox */}
               <div className="bg-white/5 p-6 rounded-2xl border border-white/5 flex items-start gap-4 hover:border-[#B49248]/30 transition-all cursor-pointer group" onClick={() => setAceptaTerminos(!aceptaTerminos)}>
                 <div className={`mt-1 flex-shrink-0 w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${aceptaTerminos ? 'bg-[#B49248] border-[#B49248]' : 'bg-transparent border-white/20'}`}>
                   {aceptaTerminos && (
