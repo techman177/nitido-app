@@ -111,7 +111,18 @@ export default async function Page({ params }: Props) {
     .single()
 
   if (error || !data) {
-    notFound()
+    return (
+      <div className="min-h-screen bg-[#050505] flex items-center justify-center p-6 text-center">
+        <div className="bg-red-500/10 border border-red-500/20 p-8 rounded-2xl max-w-lg w-full">
+          <span className="text-5xl mb-4 block">🚨</span>
+          <h1 className="text-2xl font-black text-white mb-2">Anuncio inaccesible</h1>
+          <p className="text-white/60 mb-4 text-sm">El anuncio fue creado, pero la base de datos bloquea su lectura. Detalle técnico:</p>
+          <code className="block bg-black/50 p-4 rounded-xl text-red-400 text-xs text-left overflow-auto">
+            {error ? JSON.stringify(error, null, 2) : "data is null"}
+          </code>
+        </div>
+      </div>
+    )
   }
 
   const ad = data as unknown as Anuncio
