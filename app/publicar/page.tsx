@@ -59,6 +59,11 @@ export default function PublicarPage() {
   const [loadingSession, setLoadingSession] = useState(true)
   const [mayorDeEdad, setMayorDeEdad] = useState<boolean | null>(null)
   const [aceptaTerminos, setAceptaTerminos] = useState(false)
+  
+  // Estado para el buscador de sectores (Combobox)
+  const [sectorSearch, setSectorSearch] = useState('')
+  const [sectorDropdownOpen, setSectorDropdownOpen] = useState(false)
+  
   const router = useRouter()
 
   useEffect(() => {
@@ -113,6 +118,12 @@ export default function PublicarPage() {
   const esVehiculo = categoriaSeleccionada === 'vehículos' || categoriaSeleccionada === 'vehiculos';
   const esConectar = categoriaSeleccionada === 'conectar';
 
+  const sectoresFiltrados = sectores.filter(s => 
+    s.nombre.toLowerCase().includes(sectorSearch.toLowerCase())
+  );
+  
+  const sectorSeleccionadoNormalizado = sectores.find(s => s.id.toString() === sectorId);
+
   // Función para optimizar imágenes del lado del cliente
   const compressImage = (file: File): Promise<Blob> => {
     return new Promise((resolve) => {
@@ -162,11 +173,31 @@ export default function PublicarPage() {
       return
     }
 
-    const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       toast.error('Sesión expirada. Por favor inicia sesión de nuevo.')
       setLoading(false)
       return
+    }
+
+    // --- VALIDACIÓN MANUAL PARA EVITAR POPUPS NATIVOS ROTOS EN MÓVIL ---
+    if (!titulo.trim()) { toast.error('El título es requerido'); setLoading(false); return; }
+    if (!categoriaId) { toast.error('Selecciona una categoría'); setLoading(false); return; }
+    if (!sectorId) { toast.error('Selecciona tu sector o ciudad'); setLoading(false); return; }
+    if (!ubicacion.trim()) { toast.error('La ubicación es requerida'); setLoading(false); return; }
+    if (!esConectar && !precio) { toast.error('El precio es requerido'); setLoading(false); return; }
+    if (!descripcion.trim()) { toast.error('La descripción es requerida'); setLoading(false); return; }
+    
+    if (esVehiculo) {
+      if (!marca.trim()) { toast.error('La marca es requerida'); setLoading(false); return; }
+      if (!modelo.trim()) { toast.error('El modelo es requerido'); setLoading(false); return; }
+      if (!anio) { toast.error('El año es requerido'); setLoading(false); return; }
+    }
+
+    if (esConectar) {
+      if (!anio) { toast.error('Tu edad es requerida'); setLoading(false); return; }
+      if (!marca) { toast.error('Selecciona qué eres'); setLoading(false); return; }
+      if (!modelo) { toast.error('Selecciona qué buscas'); setLoading(false); return; }
+      if (!transmision) { toast.error('Selecciona el tipo de relación'); setLoading(false); return; }
     }
 
     if (fotos.length === 0) {
@@ -248,8 +279,8 @@ export default function PublicarPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050505] py-8 md:py-16 px-4 font-sans text-white flex flex-col justify-center">
-      <div className="max-w-xl mx-auto w-full">
+    <div className="min-h-screen bg-[#050505] py-6 md:py-16 px-4 sm:px-6 font-sans text-white flex flex-col justify-center">
+      <div className="w-full max-w-md md:max-w-xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <Link href="/" className="hover:opacity-80 transition-opacity">
             <Logo className="h-8 md:h-12 w-auto" />
@@ -257,11 +288,11 @@ export default function PublicarPage() {
           <Link href="/" className="text-sm font-semibold text-white/40 hover:text-white transition-colors">Volver al inicio</Link>
         </div>
 
-        <div className="bg-[#0a0a0b] p-8 sm:p-10 rounded-3xl shadow-2xl border border-white/5 relative overflow-hidden">
+        <div className="bg-[#0a0a0b] p-6 sm:p-10 rounded-[2rem] shadow-2xl border border-white/5 relative overflow-hidden">
           {/* Brillo decorativo */}
           <div className="absolute top-0 right-0 w-32 h-32 bg-[#B49248]/5 blur-3xl rounded-full -mr-16 -mt-16"></div>
           
-          <h1 className="text-3xl font-black mb-2 text-white tracking-tight">Publica tu anuncio</h1>
+          <h1 className="text-2xl sm:text-3xl font-black mb-2 text-white tracking-tight">Publica tu anuncio</h1>
           <p className="text-white/40 mb-8 font-medium">Llega a la audiencia más exclusiva de RD.</p>
 
           {mayorDeEdad === false ? (
@@ -301,15 +332,15 @@ export default function PublicarPage() {
               </button>
             </div>
           ) : (
-            <form onSubmit={handlePublicar} className="space-y-10">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <form onSubmit={handlePublicar} className="space-y-8" noValidate>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
                 <div className="space-y-2">
                   <label className="block text-sm font-bold text-white/60 mb-2 ml-1">Título del anuncio</label>
-                  <input type="text" placeholder="Ej. Toyota Corolla" className="w-full p-4 bg-white/5 border border-white/10 rounded-xl focus:border-[#B49248] outline-none transition-all text-white placeholder:text-white/20" value={titulo} onChange={(e) => setTitulo(e.target.value)} required />
+                  <input type="text" placeholder="Ej. Toyota Corolla" className="w-full p-4 bg-white/5 border border-white/10 rounded-xl focus:border-[#B49248] outline-none transition-all text-white placeholder:text-white/20" value={titulo} onChange={(e) => setTitulo(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <label className="block text-sm font-bold text-white/60 mb-2 ml-1">Categoría</label>
-                  <select className="w-full p-4 bg-white/5 border border-white/10 rounded-xl focus:border-[#B49248] outline-none transition-all cursor-pointer text-white appearance-none" value={categoriaId} onChange={(e) => setCategoriaId(e.target.value)} required>
+                  <select className="w-full p-4 bg-white/5 border border-white/10 rounded-xl focus:border-[#B49248] outline-none transition-all cursor-pointer text-white appearance-none" value={categoriaId} onChange={(e) => setCategoriaId(e.target.value)}>
                     <option value="" disabled className="bg-[#0a0a0b]">Selecciona una...</option>
                     {categorias.map((cat) => (
                       <option key={cat.id} value={cat.id} className="bg-[#0a0a0b]">{cat.nombre}</option>
@@ -324,15 +355,15 @@ export default function PublicarPage() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-[10px] font-bold text-white/40 mb-1.5 uppercase ml-1">Marca</label>
-                      <input type="text" placeholder="Ej. Toyota" className="w-full p-3 bg-white/5 border border-white/5 rounded-xl outline-none focus:border-[#B49248] text-white" value={marca} onChange={(e) => setMarca(e.target.value)} required={esVehiculo} />
+                      <input type="text" placeholder="Ej. Toyota" className="w-full p-3 bg-white/5 border border-white/5 rounded-xl outline-none focus:border-[#B49248] text-white" value={marca} onChange={(e) => setMarca(e.target.value)} />
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold text-white/40 mb-1.5 uppercase ml-1">Modelo</label>
-                      <input type="text" placeholder="Ej. Corolla" className="w-full p-3 bg-white/5 border border-white/5 rounded-xl outline-none focus:border-[#B49248] text-white" value={modelo} onChange={(e) => setModelo(e.target.value)} required={esVehiculo} />
+                      <input type="text" placeholder="Ej. Corolla" className="w-full p-3 bg-white/5 border border-white/5 rounded-xl outline-none focus:border-[#B49248] text-white" value={modelo} onChange={(e) => setModelo(e.target.value)} />
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold text-white/40 mb-1.5 uppercase ml-1">Año</label>
-                      <input type="number" placeholder="Ej. 2018" className="w-full p-3 bg-white/5 border border-white/5 rounded-xl outline-none focus:border-[#B49248] text-white" value={anio} onChange={(e) => setAnio(e.target.value)} required={esVehiculo} />
+                      <input type="number" placeholder="Ej. 2018" className="w-full p-3 bg-white/5 border border-white/5 rounded-xl outline-none focus:border-[#B49248] text-white" value={anio} onChange={(e) => setAnio(e.target.value)} />
                     </div>
                   </div>
                 </div>
@@ -347,11 +378,11 @@ export default function PublicarPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
                       <label className="block text-[10px] font-bold text-pink-500/60 uppercase tracking-widest mb-1.5 ml-1">Mi Edad</label>
-                      <input type="number" min="18" max="99" placeholder="25" className="w-full p-3 bg-white/5 border border-pink-500/20 rounded-xl outline-none focus:border-pink-500 text-center font-bold text-white" value={anio} onChange={(e) => setAnio(e.target.value)} required={esConectar} />
+                      <input type="number" min="18" max="99" placeholder="25" className="w-full p-3 bg-white/5 border border-pink-500/20 rounded-xl outline-none focus:border-pink-500 text-center font-bold text-white" value={anio} onChange={(e) => setAnio(e.target.value)} />
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold text-pink-500/60 uppercase tracking-widest mb-1.5 ml-1">Soy</label>
-                      <select className="w-full p-3 bg-white/5 border border-pink-500/20 rounded-xl outline-none focus:border-pink-500 text-white font-medium appearance-none" value={marca} onChange={(e) => setMarca(e.target.value)} required={esConectar}>
+                      <select className="w-full p-3 bg-white/5 border border-pink-500/20 rounded-xl outline-none focus:border-pink-500 text-white font-medium appearance-none" value={marca} onChange={(e) => setMarca(e.target.value)}>
                         <option value="" disabled className="bg-[#0a0a0b]">Soy...</option>
                         <option value="Hombre" className="bg-[#0a0a0b]">Hombre</option>
                         <option value="Mujer" className="bg-[#0a0a0b]">Mujer</option>
@@ -359,7 +390,7 @@ export default function PublicarPage() {
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold text-pink-500/60 uppercase tracking-widest mb-1.5 ml-1">Busco</label>
-                      <select className="w-full p-3 bg-white/5 border border-pink-500/20 rounded-xl outline-none focus:border-pink-500 text-white font-medium appearance-none" value={modelo} onChange={(e) => setModelo(e.target.value)} required={esConectar}>
+                      <select className="w-full p-3 bg-white/5 border border-pink-500/20 rounded-xl outline-none focus:border-pink-500 text-white font-medium appearance-none" value={modelo} onChange={(e) => setModelo(e.target.value)}>
                         <option value="" disabled className="bg-[#0a0a0b]">Busco...</option>
                         <option value="Hombre" className="bg-[#0a0a0b]">Hombre</option>
                         <option value="Mujer" className="bg-[#0a0a0b]">Mujer</option>
@@ -367,7 +398,7 @@ export default function PublicarPage() {
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold text-pink-500/60 uppercase tracking-widest mb-1.5 ml-1">Relación</label>
-                      <select className="w-full p-3 bg-white/5 border border-pink-500/20 rounded-xl outline-none focus:border-pink-500 text-white font-medium appearance-none" value={transmision} onChange={(e) => setTransmision(e.target.value)} required={esConectar}>
+                      <select className="w-full p-3 bg-white/5 border border-pink-500/20 rounded-xl outline-none focus:border-pink-500 text-white font-medium appearance-none" value={transmision} onChange={(e) => setTransmision(e.target.value)}>
                         <option value="" disabled className="bg-[#0a0a0b]">Tipo...</option>
                         <option value="Amistad" className="bg-[#0a0a0b]">Amistad</option>
                         <option value="Citas casuales" className="bg-[#0a0a0b]">Citas</option>
@@ -384,35 +415,72 @@ export default function PublicarPage() {
                 {fotos.length > 0 && <p className="mt-4 text-xs text-[#B49248] font-black uppercase tracking-widest">{fotos.length} foto(s) listas para brillar</p>}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
                 {!esConectar && (
                   <div className="space-y-2">
                     <label className="block text-sm font-bold text-white/60 mb-2 ml-1">Precio (DOP)</label>
-                    <input type="number" placeholder="Ej. 850000" className="w-full p-4 bg-white/5 border border-white/10 rounded-xl focus:border-[#B49248] outline-none transition-all text-white placeholder:text-white/20" value={precio} onChange={(e) => setPrecio(e.target.value)} required={!esConectar} />
+                    <input type="number" placeholder="Ej. 850000" className="w-full p-4 bg-white/5 border border-white/10 rounded-xl focus:border-[#B49248] outline-none transition-all text-white placeholder:text-white/20" value={precio} onChange={(e) => setPrecio(e.target.value)} />
                   </div>
                 )}
                 <div className={`${esConectar ? 'md:col-span-2' : ''} space-y-4`}>
                   <label className="block text-sm font-bold text-white/60 mb-2 ml-1">{esConectar ? 'Ubicación' : 'Sector / Ciudad'}</label>
                   <div className="space-y-4">
-                    <select 
-                      className="w-full p-4 bg-white/5 border border-white/10 rounded-xl focus:border-[#B49248] outline-none transition-all cursor-pointer text-white appearance-none"
-                      value={sectorId}
-                      onChange={(e) => setSectorId(e.target.value)}
-                      required
-                    >
-                      <option value="" disabled className="bg-[#0a0a0b]">Selecciona tu Sector...</option>
-                      {sectores.map((s) => (
-                        <option key={s.id} value={s.id} className="bg-[#0a0a0b]">{s.nombre}</option>
-                      ))}
-                    </select>
-                    <input type="text" placeholder="Ej. Calle Palo Hincado #4" className="w-full p-4 bg-white/5 border border-white/10 rounded-xl focus:border-[#B49248] outline-none transition-all text-white placeholder:text-white/20" value={ubicacion} onChange={(e) => setUbicacion(e.target.value)} required />
+                    <div className="relative">
+                      <div 
+                        className="w-full p-4 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between cursor-pointer focus-within:border-[#B49248] transition-all"
+                        onClick={() => setSectorDropdownOpen(!sectorDropdownOpen)}
+                      >
+                        <span className={`text-base ${sectorSeleccionadoNormalizado ? 'text-white' : 'text-white/40'}`}>
+                          {sectorSeleccionadoNormalizado?.nombre || 'Selecciona tu Sector...'}
+                        </span>
+                        <svg className={`w-5 h-5 text-white/40 transition-transform ${sectorDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+
+                      {sectorDropdownOpen && (
+                        <div className="absolute z-50 w-full mt-2 bg-[#121214] border border-white/10 rounded-xl shadow-2xl max-h-60 overflow-hidden flex flex-col">
+                          <div className="p-3 border-b border-white/5 sticky top-0 bg-[#121214]">
+                            <input 
+                              type="text" 
+                              placeholder="Buscar sector o ciudad..." 
+                              className="w-full p-3 bg-white/5 border border-white/10 rounded-lg focus:border-[#B49248] outline-none text-white text-sm"
+                              value={sectorSearch}
+                              onChange={(e) => setSectorSearch(e.target.value)}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </div>
+                          <div className="overflow-y-auto p-2">
+                            {sectoresFiltrados.length === 0 ? (
+                              <div className="p-4 text-center text-white/40 text-sm">No encontramos resultados</div>
+                            ) : (
+                              sectoresFiltrados.map((s) => (
+                                <div 
+                                  key={s.id} 
+                                  className={`p-3 rounded-lg cursor-pointer text-sm font-medium transition-colors ${sectorId === s.id.toString() ? 'bg-[#B49248]/20 text-[#E5CC89]' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}
+                                  onClick={() => {
+                                    setSectorId(s.id.toString());
+                                    setSectorDropdownOpen(false);
+                                    setSectorSearch('');
+                                  }}
+                                >
+                                  {s.nombre}
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <input type="text" placeholder={esConectar ? "Ej. Ensanche Naco" : "Ej. Calle Palo Hincado #4"} className="w-full p-4 bg-white/5 border border-white/10 rounded-xl focus:border-[#B49248] outline-none transition-all text-white placeholder:text-white/20" value={ubicacion} onChange={(e) => setUbicacion(e.target.value)} />
                   </div>
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm font-bold text-white/60 mb-2 ml-1">{esConectar ? 'Biografía' : 'Descripción detallada'}</label>
-                <textarea placeholder={esConectar ? "Cuéntanos de ti..." : "Describe lo que vendes..."} rows={4} className="w-full p-4 bg-white/5 border border-white/10 rounded-xl focus:border-[#B49248] outline-none transition-all resize-none text-white placeholder:text-white/20" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} required />
+                <textarea placeholder={esConectar ? "Cuéntanos de ti..." : "Describe lo que vendes..."} rows={4} className="w-full p-4 bg-white/5 border border-white/10 rounded-xl focus:border-[#B49248] outline-none transition-all resize-none text-white placeholder:text-white/20" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} />
               </div>
 
               {/* Legal Checkbox */}

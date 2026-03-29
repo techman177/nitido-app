@@ -2,6 +2,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import HomeAdsGallery from "@/components/HomeAdsGallery";
 import { createClient } from "@/utils/supabase/server";
+import { Suspense } from "react";
 
 // Deshabilitar cacheo agresivo para que la vitrina siempre traiga lo último
 export const revalidate = 0;
@@ -31,7 +32,8 @@ interface Anuncio {
   categorias: { nombre: string }
 }
 
-export default async function Home({ searchParams }: { searchParams: { categoria?: string, sector?: string, min?: string, max?: string } }) {
+export default async function Home(props: { searchParams: Promise<{ [key: string]: string | undefined }> }) {
+  const searchParams = await props.searchParams;
   const supabase = await createClient()
 
   // 1. Construir query dinámica
@@ -115,7 +117,9 @@ export default async function Home({ searchParams }: { searchParams: { categoria
       {/* 2. LA VITRINA INTELIGENTE (HomeAdsGallery) */}
       <section className="max-w-6xl mx-auto px-6 pt-20 border-t border-white/5 relative">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[1px] bg-gradient-to-r from-transparent via-[#B49248]/30 to-transparent"></div>
-        <HomeAdsGallery initialAds={ads} categories={categories} />
+        <Suspense fallback={<div className="text-center text-white/50 py-20 font-bold uppercase tracking-widest">Cargando la élite...</div>}>
+          <HomeAdsGallery initialAds={ads} categories={categories} />
+        </Suspense>
       </section>
 
       <Footer />
