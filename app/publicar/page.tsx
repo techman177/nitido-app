@@ -173,6 +173,7 @@ export default function PublicarPage() {
       return
     }
 
+    const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       toast.error('Sesión expirada. Por favor inicia sesión de nuevo.')
       setLoading(false)

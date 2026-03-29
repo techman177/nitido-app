@@ -62,6 +62,14 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/login', request.url))
     }
 
+    // LISTA BLANCA DE ADMINS POR CORREO (CRÍTICO PARA technr07@gmail.com)
+    const adminEmails = ['technr07@gmail.com'];
+    const isWhiteListed = adminEmails.includes(user.email || '');
+
+    if (isWhiteListed) {
+       return supabaseResponse;
+    }
+
     // Verificar si es admin en la tabla perfiles
     const { data: perfil } = await supabase
       .from('perfiles')
